@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* Design Tokens */
+@theme {
+  --color-dwarfs-bg: #F2F2F0;
+  --color-dwarfs-surface: #EBEBEA;
+  --color-dwarfs-dark: #1A1A1A;
+  --color-dwarfs-gray: #6B6B6B;
+  --color-dwarfs-light: #FAFAFA;
+
+  --color-background: #F2F2F0;
+  --color-foreground: #1A1A1A;
+  --color-border: #D8D8D6;
+  --color-muted: #EBEBEA;
+  --color-muted-foreground: #6B6B6B;
+
+  --font-display: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  --background: #F2F2F0;
+  --foreground: #1A1A1A;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  line-height: 1.6;
+}
+
+/* Utilities */
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Components */
+.btn-primary {
+  @apply bg-dwarfs-dark text-dwarfs-light px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200 hover:bg-dwarfs-gray;
+}
+
+.btn-outline {
+  @apply border border-dwarfs-dark text-dwarfs-dark px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200 hover:bg-dwarfs-dark hover:text-dwarfs-light;
+}
+
+.btn-ghost {
+  @apply text-dwarfs-dark px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-dwarfs-surface;
+}
+
+.input-base {
+  @apply w-full border border-border bg-transparent px-4 py-3 text-sm;
+}
+
+.badge-new {
+  @apply absolute top-3 left-3 bg-dwarfs-dark text-dwarfs-light text-[10px] font-medium uppercase tracking-widest px-2 py-1;
+}
