@@ -103,7 +103,7 @@ export function CategorySection({ category, products, viewAllHref }: CategorySec
       <div className="mt-8 text-center">
         <Link
           href={viewAllHref}
-          className="btn-outline inline-block"
+          className="btn-outline inline-block" 
         >
           Xem tất cả {category.name.toLowerCase()} ({category.productCount})
         </Link>

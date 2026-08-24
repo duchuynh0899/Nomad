@@ -10,7 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="text-xl font-medium tracking-[0.2em] uppercase">
-              Dwarfs
+              Nomad
             </Link>
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-xs">
               Thời trang tối giản, chất liệu cao cấp. Được thiết kế cho cuộc sống hiện đại của bạn.

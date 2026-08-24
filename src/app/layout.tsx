@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { ToastProvider } from "@/components/ui/Toast";
+import { Providers } from "./providers";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -26,7 +27,8 @@ export const metadata: Metadata = {
     url: "https://%s | Nomad.vn",
     siteName: "%s | Nomad",
     title: "%s | Nomad – Thời trang tối giản",
-    description: "Bộ sưu tập áo và quần %s | Nomad – thiết kế tối giản, chất liệu cao cấp.",
+    description:
+      "Bộ sưu tập áo và quần %s | Nomad – thiết kế tối giản, chất liệu cao cấp.",
   },
   robots: {
     index: true,
@@ -42,14 +44,16 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ToastProvider>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-          <CartDrawer />
-        </ToastProvider>
+        <Providers>
+          <ToastProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+            <CartDrawer />
+          </ToastProvider>
+        </Providers>
       </body>
     </html>
   );

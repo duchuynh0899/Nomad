@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Đặt hàng thành công | Dwarfs",
+  title: "Đặt hàng thành công | Nomad",
 };
 
 export default function CheckoutSuccessPage({
@@ -17,7 +17,7 @@ export default function CheckoutSuccessPage({
 
       <h1 className="text-2xl font-medium mb-3">Đặt hàng thành công!</h1>
       <p className="text-muted-foreground text-sm leading-relaxed mb-2">
-        Cảm ơn bạn đã mua sắm tại Dwarfs.
+        Cảm ơn bạn đã mua sắm tại Nomad.
       </p>
 
       {searchParams.orderId && (

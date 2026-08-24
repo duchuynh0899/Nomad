@@ -44,6 +44,8 @@ export type Product = {
   care?: string[];
   createdAt: string;
   updatedAt: string;
+  reviews?: Review[];
+  information?: string;
 };
 
 export type ProductListItem = Pick<
@@ -161,3 +163,12 @@ export type Order = {
   createdAt: string;
   updatedAt: string;
 };
+
+export interface Review {
+  id: string;
+  author: string;
+  rating: number; // 1-5
+  date: string; // ISO string
+  content: string;
+  verified?: boolean;
+}

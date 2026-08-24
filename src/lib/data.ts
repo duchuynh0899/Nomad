@@ -277,8 +277,8 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
-    label: "Phụ kiện",
-    href: "/shop/phu-kien",
+    label: "Chính sách đổi trả",
+    href: "/policy",
   },
   {
     label: "New Arrivals",

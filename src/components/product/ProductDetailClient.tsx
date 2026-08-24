@@ -1,24 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { ProductCard } from "@/components/product/ProductCard";
+import { useToast } from "@/components/ui/Toast";
+import { useCartStore } from "@/lib/cart-store";
+import { cn, formatPrice, getDiscountPercent } from "@/lib/utils";
+import { useWishlistStore } from "@/lib/wishlist-store";
+import type {
+  Product,
+  ProductColor,
+  ProductListItem,
+  ProductSize,
+} from "@/types";
+import DOMPurify from "isomorphic-dompurify";
+import { Heart, Minus, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, Heart, Minus, Plus } from "lucide-react";
-import { cn, formatPrice, getDiscountPercent } from "@/lib/utils";
-import { useCartStore } from "@/lib/cart-store";
-import { useWishlistStore } from "@/lib/wishlist-store";
-import { useToast } from "@/components/ui/Toast";
-import { ProductCard } from "@/components/product/ProductCard";
-import type { Product, ProductColor, ProductSize, ProductListItem } from "@/types";
+import { useState } from "react";
 
 interface ProductDetailClientProps {
   product: Product;
   related: ProductListItem[];
 }
 
-export function ProductDetailClient({ product, related }: ProductDetailClientProps) {
+export function ProductDetailClient({
+  product,
+  related,
+}: ProductDetailClientProps) {
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState<ProductColor>(product.colors[0]);
+  const [selectedColor, setSelectedColor] = useState<ProductColor>(
+    product.colors[0],
+  );
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [sizeError, setSizeError] = useState(false);
@@ -43,7 +54,7 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
 
   const getVariant = (color: ProductColor, size: ProductSize) => {
     return product.variants.find(
-      (v) => v.color.slug === color.slug && v.size === size
+      (v) => v.color.slug === color.slug && v.size === size,
     );
   };
 
@@ -68,16 +79,27 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
     toast(`Đã thêm ${product.name} vào giỏ hàng`, "success");
   };
 
-  console.log(product.images[selectedImage]?.url)
+  console.log(product.images[selectedImage]?.url);
+
+  const sanitizedInfo = DOMPurify.sanitize(product?.information);
 
   return (
     <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs text-muted-foreground mb-8">
-        <Link href="/" className="hover:text-foreground underline-anim">Trang chủ</Link>
+        <Link href="/" className="hover:text-foreground underline-anim">
+          Trang chủ
+        </Link>
         <span>/</span>
-        <Link href={`/shop/${product.category}`} className="hover:text-foreground underline-anim capitalize">
-          {product.category === "ao" ? "Áo" : product.category === "quan" ? "Quần" : "Phụ kiện"}
+        <Link
+          href={`/shop/${product.category}`}
+          className="hover:text-foreground underline-anim capitalize"
+        >
+          {product.category === "ao"
+            ? "Áo"
+            : product.category === "quan"
+              ? "Quần"
+              : "Phụ kiện"}
         </Link>
         <span>/</span>
         <span className="text-foreground">{product.name}</span>
@@ -98,9 +120,7 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
               className="object-cover"
             />
 
-            {product.isNew && (
-              <span className="badge-new">New</span>
-            )}
+            {product.isNew && <span className="badge-new">New</span>}
             {product.originalPrice && (
               <span className="badge-sale">
                 -{getDiscountPercent(product.price, product.originalPrice)}%
@@ -117,7 +137,9 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                   onClick={() => setSelectedImage(idx)}
                   className={cn(
                     "relative w-16 aspect-[3/4] bg-dwarfs-surface overflow-hidden border-2 transition-colors",
-                    selectedImage === idx ? "border-dwarfs-dark" : "border-transparent"
+                    selectedImage === idx
+                      ? "border-dwarfs-dark"
+                      : "border-transparent",
                   )}
                 >
                   <Image
@@ -143,9 +165,13 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                   Best Seller
                 </p>
               )}
-              <h1 className="text-2xl font-medium tracking-tight">{product.name}</h1>
+              <h1 className="text-2xl font-medium tracking-tight">
+                {product.name}
+              </h1>
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-xl font-medium">{formatPrice(product.price)}</span>
+                <span className="text-xl font-medium">
+                  {formatPrice(product.price)}
+                </span>
                 {product.originalPrice && (
                   <span className="text-base text-muted-foreground line-through">
                     {formatPrice(product.originalPrice)}
@@ -157,7 +183,10 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
             {/* Color selector */}
             <div>
               <p className="text-xs font-medium tracking-widest uppercase mb-3">
-                Màu sắc: <span className="font-normal normal-case text-muted-foreground">{selectedColor.name}</span>
+                Màu sắc:{" "}
+                <span className="font-normal normal-case text-muted-foreground">
+                  {selectedColor.name}
+                </span>
               </p>
               <div className="flex gap-2">
                 {product.colors.map((color) => (
@@ -168,7 +197,7 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                       "w-8 h-8 rounded-full border-2 transition-all",
                       selectedColor.slug === color.slug
                         ? "border-dwarfs-dark scale-110"
-                        : "border-transparent hover:border-border"
+                        : "border-transparent hover:border-border",
                     )}
                     style={{ backgroundColor: color.hex }}
                     title={color.name}
@@ -181,13 +210,18 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
             {/* Size selector */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className={cn(
-                  "text-xs font-medium tracking-widest uppercase",
-                  sizeError && "text-red-500"
-                )}>
+                <p
+                  className={cn(
+                    "text-xs font-medium tracking-widest uppercase",
+                    sizeError && "text-red-500",
+                  )}
+                >
                   {sizeError ? "Vui lòng chọn size" : "Kích thước"}
                 </p>
-                <Link href="/huong-dan-chon-size" className="text-xs text-muted-foreground underline-anim">
+                <Link
+                  href="/huong-dan-chon-size"
+                  className="text-xs text-muted-foreground underline-anim"
+                >
                   Hướng dẫn chọn size
                 </Link>
               </div>
@@ -197,15 +231,18 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                   return (
                     <button
                       key={size}
-                      onClick={() => { setSelectedSize(size); setSizeError(false); }}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setSizeError(false);
+                      }}
                       disabled={!available}
                       className={cn(
                         "min-w-[3rem] px-3 py-2 text-sm border transition-all",
                         selectedSize === size
                           ? "bg-dwarfs-dark text-white border-dwarfs-dark"
                           : available
-                          ? "border-border hover:border-dwarfs-dark"
-                          : "border-border text-muted-foreground/40 cursor-not-allowed line-through"
+                            ? "border-border hover:border-dwarfs-dark"
+                            : "border-border text-muted-foreground/40 cursor-not-allowed line-through",
                       )}
                     >
                       {size}
@@ -223,7 +260,9 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
 
             {/* Quantity */}
             <div>
-              <p className="text-xs font-medium tracking-widest uppercase mb-3">Số lượng</p>
+              <p className="text-xs font-medium tracking-widest uppercase mb-3">
+                Số lượng
+              </p>
               <div className="flex items-center border border-border w-fit">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -231,10 +270,14 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                 >
                   <Minus size={14} />
                 </button>
-                <span className="px-4 py-2.5 text-sm min-w-[3rem] text-center">{quantity}</span>
+                <span className="px-4 py-2.5 text-sm min-w-[3rem] text-center">
+                  {quantity}
+                </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  disabled={currentVariant ? quantity >= currentVariant.stock : false}
+                  disabled={
+                    currentVariant ? quantity >= currentVariant.stock : false
+                  }
                   className="px-3 py-2.5 hover:bg-dwarfs-surface transition-colors disabled:opacity-40"
                 >
                   <Plus size={14} />
@@ -253,34 +296,49 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                   "p-3 border transition-all",
                   wishlisted
                     ? "bg-dwarfs-dark text-white border-dwarfs-dark"
-                    : "border-border hover:border-dwarfs-dark"
+                    : "border-border hover:border-dwarfs-dark",
                 )}
-                aria-label={wishlisted ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+                aria-label={
+                  wishlisted ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"
+                }
               >
-                <Heart
-                  size={18}
-                  className={wishlisted ? "fill-current" : ""}
-                />
+                <Heart size={18} className={wishlisted ? "fill-current" : ""} />
               </button>
             </div>
 
             {/* Product details */}
             <div className="space-y-4 border-t border-border pt-6">
+              <div className="border-t border-border pt-6">
+                <div
+                  className="prose prose-sm max-w-none text-muted-foreground [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:p-2 [&_td]:border [&_td]:border-border [&_td]:p-2"
+                  dangerouslySetInnerHTML={{ __html: sanitizedInfo }}
+                />
+              </div>
               <div>
-                <p className="text-xs font-medium tracking-widest uppercase mb-2">Mô tả</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                <p className="text-xs font-medium tracking-widest uppercase mb-2">
+                  Mô tả
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {product.description}
+                </p>
               </div>
 
               {product.material && (
                 <div>
-                  <p className="text-xs font-medium tracking-widest uppercase mb-2">Chất liệu</p>
-                  <p className="text-sm text-muted-foreground">{product.material}</p>
+                  <p className="text-xs font-medium tracking-widest uppercase mb-2">
+                    Chất liệu
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {product.material}
+                  </p>
                 </div>
               )}
 
               {product.care && product.care.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium tracking-widest uppercase mb-2">Hướng dẫn bảo quản</p>
+                  <p className="text-xs font-medium tracking-widest uppercase mb-2">
+                    Hướng dẫn bảo quản
+                  </p>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     {product.care.map((instruction, i) => (
                       <li key={i}>· {instruction}</li>
