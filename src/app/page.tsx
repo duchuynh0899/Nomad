@@ -1,35 +1,47 @@
-import type { Metadata } from "next";
 import { HeroBanner } from "@/components/layout/HeroBanner";
 import { CategorySection } from "@/components/product/CategorySection";
-import { CATEGORIES, PRODUCTS, getProductListItem } from "@/lib/data";
+import { listCategories } from "@/lib/api/categories";
+import { listProducts } from "@/lib/api/products";
 
-export const metadata: Metadata = {
-  title: "Nomad – Thời trang tối giản",
-};
+// Không khai báo metadata riêng — trang chủ dùng đúng `title.default` + `description` của root layout
+// (đặt template ở đây sẽ bị nhân đôi "Nomad" do layout đã có title.template).
 
-export default function HomePage() {
-  const aoProducts = PRODUCTS.filter((p) => p.category === "ao").map(getProductListItem);
-  const quanProducts = PRODUCTS.filter((p) => p.category === "quan").map(getProductListItem);
+const SECTIONS_LIMIT = 3;
+const PRODUCTS_PER_SECTION = 8;
 
-  const aoCategory = CATEGORIES.find((c) => c.slug === "ao")!;
-  const quanCategory = CATEGORIES.find((c) => c.slug === "quan")!;
+export default async function HomePage() {
+  const categories = await listCategories().catch(() => []);
+  // Quần là dòng chủ lực của shop — luôn hiển thị trước tiên trên trang chủ.
+  const sortedCategories = [...categories].sort(
+    (a, b) => Number(b.slug === "quan") - Number(a.slug === "quan")
+  );
+  const sections = sortedCategories.slice(0, SECTIONS_LIMIT);
+
+  const sectionsData = await Promise.all(
+    sections.map(async (category) => {
+      const res = await listProducts({ category: category._id, limit: PRODUCTS_PER_SECTION }).catch(
+        () => null
+      );
+      return { category, products: res?.items ?? [], total: res?.meta.total ?? 0 };
+    })
+  );
 
   return (
     <>
       <HeroBanner />
 
       <div className="space-y-16 pb-24">
-        <CategorySection
-          category={aoCategory}
-          products={aoProducts}
-          viewAllHref="/shop/ao"
-        />
-
-        <CategorySection
-          category={quanCategory}
-          products={quanProducts}
-          viewAllHref="/shop/quan"
-        />
+        {sectionsData
+          .filter((s) => s.products.length > 0)
+          .map((s) => (
+            <CategorySection
+              key={s.category._id}
+              category={s.category}
+              products={s.products}
+              productCount={s.total}
+              viewAllHref={`/shop/${s.category.slug}`}
+            />
+          ))}
       </div>
     </>
   );

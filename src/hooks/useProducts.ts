@@ -1,20 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { ProductListItem, SortOption, ProductCategory } from "@/types";
+import { listProducts } from "@/lib/api/products";
+import { ApiError } from "@/lib/api/http";
+import type { Product, ProductSort } from "@/types/api";
 
 interface UseProductsOptions {
-  category?: ProductCategory;
-  sort?: SortOption;
+  category?: string; // id danh mục
+  sort?: ProductSort;
   color?: string;
   size?: string;
-  q?: string;
-  filter?: "new" | "sale";
-  pageSize?: number;
+  search?: string;
+  isBestSeller?: boolean;
+  limit?: number;
 }
 
 interface ProductsState {
-  products: ProductListItem[];
+  products: Product[];
   total: number;
   page: number;
   totalPages: number;
@@ -32,31 +34,18 @@ export function useProducts(options: UseProductsOptions = {}) {
     error: null,
   });
 
-  const { category, sort = "newest", color, size, q, filter, pageSize = 12 } = options;
+  const { category, sort = "newest", color, size, search, isBestSeller, limit = 12 } = options;
 
   const fetchProducts = useCallback(
     async (page = 1) => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
       try {
-        const params = new URLSearchParams();
-        if (category) params.set("category", category);
-        if (sort) params.set("sort", sort);
-        if (color) params.set("color", color);
-        if (size) params.set("size", size);
-        if (q) params.set("q", q);
-        if (filter) params.set("filter", filter);
-        params.set("page", String(page));
-        params.set("pageSize", String(pageSize));
-
-        const res = await fetch(`/api/products?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch products");
-
-        const json = await res.json();
+        const res = await listProducts({ category, sort, color, size, search, isBestSeller, page, limit });
         setState({
-          products: json.data.items,
-          total: json.data.total,
-          page: json.data.page,
-          totalPages: json.data.totalPages,
+          products: res.items,
+          total: res.meta.total,
+          page: res.meta.page,
+          totalPages: res.meta.totalPages,
           isLoading: false,
           error: null,
         });
@@ -64,11 +53,11 @@ export function useProducts(options: UseProductsOptions = {}) {
         setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: "Không thể tải sản phẩm. Vui lòng thử lại.",
+          error: err instanceof ApiError ? err.message : "Không thể tải sản phẩm. Vui lòng thử lại.",
         }));
       }
     },
-    [category, sort, color, size, q, filter, pageSize]
+    [category, sort, color, size, search, isBestSeller, limit]
   );
 
   useEffect(() => {

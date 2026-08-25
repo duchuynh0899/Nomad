@@ -1,20 +1,24 @@
-import { getServerSession } from "next-auth";
+﻿import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
-import { LayoutDashboard, Package, ShoppingBag, Users, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Tag, Ticket, Truck, Zap, ArrowLeft } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/admin/products", label: "Sản phẩm", icon: Package },
+  { href: "/admin/products/flash-sale", label: "Flash sale", icon: Zap },
+  { href: "/admin/categories", label: "Danh mục", icon: Tag },
   { href: "/admin/orders", label: "Đơn hàng", icon: ShoppingBag },
-  { href: "/admin/customers", label: "Khách hàng", icon: Users },
+  { href: "/admin/coupons", label: "Mã giảm giá", icon: Ticket },
+  { href: "/admin/settings/shipping", label: "Phí vận chuyển", icon: Truck },
+  { href: "/admin/users", label: "Khách hàng", icon: Users },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
-  if (!session || (session.user as any)?.role !== "admin") {
+  if (!session || session.user?.role !== "admin") {
     redirect("/");
   }
 

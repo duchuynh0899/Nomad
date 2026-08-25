@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Heart } from "lucide-react";
-import { cn, formatPrice, getDiscountPercent } from "@/lib/utils";
+import { cn, formatPrice, getPriceDisplay } from "@/lib/utils";
 import { useWishlistStore } from "@/lib/wishlist-store";
 import type { ProductListItem } from "@/types";
 
@@ -14,21 +14,22 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const { toggleItem, isWishlisted } = useWishlistStore();
-  const wishlisted = isWishlisted(product.id);
+  const wishlisted = isWishlisted(product._id);
 
   const primaryImage = product.images[0];
   const hoverImage = product.images[1];
+  const href = `/shop/${product.category.slug}/${product.slug}`;
+  const priceDisplay = getPriceDisplay(product);
 
   return (
     <article className={cn("group product-card relative", className)}>
       {/* Image container */}
-      <Link href={`/shop/${product.category}/${product.slug}`} className="block">
+      <Link href={href} className="block">
         <div className="relative aspect-[3/4] bg-dwarfs-surface overflow-hidden img-zoom">
           {primaryImage && (
             <Image
-              unoptimized
-              src={primaryImage?.url}
-              alt={primaryImage.alt}
+              src={primaryImage.url}
+              alt={primaryImage.alt ?? product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className={cn(
@@ -41,7 +42,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           {hoverImage && (
             <Image
               src={hoverImage.url}
-              alt={hoverImage.alt}
+              alt={hoverImage.alt ?? product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 absolute inset-0"
@@ -49,13 +50,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
           )}
 
           {/* Badges */}
-          {product.isNew && !product.originalPrice && (
-            <span className="badge-new">New</span>
-          )}
-          {product.originalPrice && (
-            <span className="badge-sale">
-              -{getDiscountPercent(product.price, product.originalPrice)}%
-            </span>
+          {priceDisplay.discountPercent !== undefined && (
+            <span className="badge-sale">-{priceDisplay.discountPercent}%</span>
           )}
 
           {/* Wishlist button */}
@@ -85,7 +81,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       {/* Product info */}
       <div className="mt-3 space-y-1">
         <Link
-          href={`/shop/${product.category}/${product.slug}`}
+          href={href}
           className="block text-sm font-medium leading-tight hover:underline"
         >
           {product.name}
@@ -110,10 +106,10 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         {/* Price */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{formatPrice(product.price)}</span>
-          {product.originalPrice && (
+          <span className="text-sm font-medium">{formatPrice(priceDisplay.current)}</span>
+          {priceDisplay.compareAt !== undefined && (
             <span className="text-xs text-muted-foreground line-through">
-              {formatPrice(product.originalPrice)}
+              {formatPrice(priceDisplay.compareAt)}
             </span>
           )}
         </div>

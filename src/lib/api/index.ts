@@ -1,0 +1,10 @@
+export * from "./http";
+export * as categoriesApi from "./categories";
+export * as productsApi from "./products";
+export * as ordersApi from "./orders";
+export * as couponsApi from "./coupons";
+export * as usersApi from "./users";
+export * as uploadsApi from "./uploads";
+export * as settingsApi from "./settings";
+export * as dashboardApi from "./dashboard";
+export * as authApi from "./auth";

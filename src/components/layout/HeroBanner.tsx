@@ -18,11 +18,11 @@ export function HeroBanner() {
       <div className="relative z-10 mx-auto flex min-h-[80vh] max-w-7xl items-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-xl text-white">
           <p className="mb-4 text-xs font-medium tracking-[0.3em] uppercase text-white/70">
-            Bộ sưu tập Hè 2024
+            Quần nam basic
           </p>
 
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-light leading-tight">
-            Tối giản.
+            Đơn giản.
             <br />
             <span
               className="font-normal"
@@ -30,13 +30,13 @@ export function HeroBanner() {
                 fontFamily: "var(--font-display, Georgia, serif)",
               }}
             >
-              Tinh tế.
+              Dễ mặc mỗi ngày.
             </span>
           </h1>
 
           <p className="mt-6 max-w-md text-base text-white/80 leading-relaxed">
-            Chất liệu cao cấp, thiết kế bền vững. Dwarfs mang đến những trang
-            phục phù hợp với nhịp sống hiện đại của bạn.
+            Quần nam form basic cùng áo sơ mi tối giản — ít lựa chọn nhưng món nào cũng dễ phối,
+            dễ mặc, hợp với nhịp sống hiện đại. Chất liệu bền, thiết kế không lỗi mốt theo thời gian.
           </p>
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -44,14 +44,14 @@ export function HeroBanner() {
               href="/shop"
               className="inline-flex items-center justify-center bg-white px-8 py-3 text-sm font-medium text-black transition hover:bg-white/90"
             >
-              Khám phá bộ sưu tập
+              Xem quần nam
             </Link>
 
             <Link
               href="/shop?filter=new"
               className="inline-flex items-center justify-center border border-white px-8 py-3 text-sm font-medium text-white transition hover:bg-white hover:text-black"
             >
-              New Arrivals
+              Hàng mới về
             </Link>
           </div>
         </div>

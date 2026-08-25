@@ -1,13 +1,13 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { CartItem, ProductListItem, ProductVariant } from "@/types";
+import type { CartItem, Product, ProductVariant } from "@/types";
 
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
 
   // Actions
-  addItem: (product: ProductListItem, variant: ProductVariant, quantity?: number) => void;
+  addItem: (product: Product, variant: ProductVariant, quantity?: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -27,8 +27,14 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
 
       addItem: (product, variant, quantity = 1) => {
-        const existingItemId = `${product.id}-${variant.id}`;
+        const variantId = variant.id ?? variant.sku;
+        const existingItemId = `${product._id}-${variantId}`;
         const existing = get().items.find((i) => i.id === existingItemId);
+        const color = product.colors.find((c) => c.slug === variant.color) ?? {
+          name: variant.color,
+          slug: variant.color,
+          hex: "#999999",
+        };
 
         if (existing) {
           set((state) => ({
@@ -43,6 +49,7 @@ export const useCartStore = create<CartStore>()(
             id: existingItemId,
             product,
             variant,
+            color,
             quantity: Math.min(quantity, variant.stock),
           };
           set((state) => ({ items: [...state.items, newItem] }));
@@ -76,9 +83,10 @@ export const useCartStore = create<CartStore>()(
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
+      // Dùng effectivePrice — đúng số tiền backend sẽ tính lúc checkout (đã áp sale nếu có).
       total: () => {
         return get().items.reduce(
-          (sum, item) => sum + item.product.price * item.quantity,
+          (sum, item) => sum + item.product.effectivePrice * item.quantity,
           0
         );
       },
@@ -88,7 +96,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: "dwarfs-cart",
+      name: "nomad-cart",
       storage: createJSONStorage(() => localStorage),
       // Only persist items, not UI state
       partialize: (state) => ({ items: state.items }),

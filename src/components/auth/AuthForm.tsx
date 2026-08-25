@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 import { SocialButtons } from "./SocialButtons";
+import { register as registerApi } from "@/lib/api/auth";
 
 interface AuthFormProps {
   mode: "login" | "register";
@@ -57,16 +58,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     setLoading(true);
     try {
       if (isRegister) {
-        // TODO: gọi API tạo tài khoản thật
-        const res = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || "Đăng ký thất bại");
-        }
+        await registerApi({ name, email, password });
         toast("Đăng ký thành công! Đang đăng nhập...", "success");
       }
 
@@ -195,7 +187,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             />
             <span>
               Tôi đồng ý với{" "}
-              <Link href="/dieu-khoan" className="underline-anim text-foreground">
+              <Link href="/dieu-khoan-su-dung" className="underline-anim text-foreground">
                 Điều khoản sử dụng
               </Link>{" "}
               và{" "}

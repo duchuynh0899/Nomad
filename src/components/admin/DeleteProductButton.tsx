@@ -4,7 +4,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-import { useSession } from "next-auth/react";
+import { useAuthFetch } from "@/lib/api/auth-fetch";
+import { adminDeleteProduct } from "@/lib/api/products";
+import { ApiError } from "@/lib/api/http";
 
 export function DeleteProductButton({
   productId,
@@ -15,33 +17,21 @@ export function DeleteProductButton({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { authFetch } = useAuthFetch();
   const [loading, setLoading] = useState(false);
 
-  const { data: session } = useSession();
-
   const handleDelete = async () => {
-    if (
-      !confirm(
-        `Xoá sản phẩm "${productName}"? Hành động này không thể hoàn tác.`,
-      )
-    )
-      return;
+    if (!confirm(`Ẩn sản phẩm "${productName}"? Sản phẩm sẽ không còn hiển thị ở cửa hàng.`)) return;
 
     setLoading(true);
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/products/${productId}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${(session as any)?.accessToken}` },
-      },
-    );
-    setLoading(false);
-
-    if (res.ok) {
-      toast("Đã xoá sản phẩm", "success");
+    try {
+      await authFetch((token) => adminDeleteProduct(token, productId));
+      toast("Đã ẩn sản phẩm", "success");
       router.refresh();
-    } else {
-      toast("Xoá thất bại, thử lại sau", "error");
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Xoá thất bại, thử lại sau", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,7 +41,7 @@ export function DeleteProductButton({
       disabled={loading}
       className="text-xs text-red-500 underline-anim disabled:opacity-50"
     >
-      {loading ? "Đang xoá..." : "Xoá"}
+      {loading ? "Đang xoá..." : "Ẩn"}
     </button>
   );
 }

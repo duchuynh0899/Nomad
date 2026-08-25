@@ -4,14 +4,15 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { X, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS } from "@/lib/data";
+import type { NavItem } from "@/types";
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  navItems: NavItem[];
 }
 
-export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, navItems }: MobileMenuProps) {
   // Lock scroll
   useEffect(() => {
     if (isOpen) {
@@ -52,7 +53,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
         {/* Nav items */}
         <nav className="py-4">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -73,7 +74,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           <Link href="/wishlist" onClick={onClose} className="block text-sm text-muted-foreground hover:text-foreground underline-anim">
             Danh sách yêu thích
           </Link>
-          <Link href="/lien-he" onClick={onClose} className="block text-sm text-muted-foreground hover:text-foreground underline-anim">
+          <Link href="/policy" onClick={onClose} className="block text-sm text-muted-foreground hover:text-foreground underline-anim">
             Liên hệ
           </Link>
         </div>

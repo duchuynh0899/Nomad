@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -12,9 +12,10 @@ interface CategorySectionProps {
   category: Category;
   products: ProductListItem[];
   viewAllHref: string;
+  productCount: number;
 }
 
-export function CategorySection({ category, products, viewAllHref }: CategorySectionProps) {
+export function CategorySection({ category, products, viewAllHref, productCount }: CategorySectionProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 1,
@@ -90,7 +91,7 @@ export function CategorySection({ category, products, viewAllHref }: CategorySec
         <div className="flex gap-4">
           {products.map((product) => (
             <div
-              key={product.id}
+              key={product._id}
               className="flex-none w-[calc(50%-8px)] sm:w-[calc(33.333%-12px)] lg:w-[calc(25%-12px)]"
             >
               <ProductCard product={product} />
@@ -105,7 +106,7 @@ export function CategorySection({ category, products, viewAllHref }: CategorySec
           href={viewAllHref}
           className="btn-outline inline-block" 
         >
-          Xem tất cả {category.name.toLowerCase()} ({category.productCount})
+          Xem tất cả {category.name.toLowerCase()} ({productCount})
         </Link>
       </div>
     </section>

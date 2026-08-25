@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Chính sách đổi trả | Nomad",
+  title: "Chính sách đổi trả",
   description:
     "Chính sách đổi trả sản phẩm của Nomad – đổi size/màu, hoàn tiền và bảo hành lỗi nhà sản xuất trong vòng 14 ngày.",
 };
@@ -315,14 +315,11 @@ export default function ReturnPolicyPage() {
 
       {/* Footer links */}
       <div className="mt-10 flex flex-wrap gap-4 text-sm">
-        <Link href="/chinh-sach-van-chuyen" className="underline-anim text-muted-foreground hover:text-foreground">
-          Chính sách vận chuyển
+        <Link href="/dieu-khoan-su-dung" className="underline-anim text-muted-foreground hover:text-foreground">
+          Điều khoản sử dụng
         </Link>
-        <Link href="/huong-dan-chon-size" className="underline-anim text-muted-foreground hover:text-foreground">
-          Hướng dẫn chọn size
-        </Link>
-        <Link href="/faq" className="underline-anim text-muted-foreground hover:text-foreground">
-          Câu hỏi thường gặp
+        <Link href="/chinh-sach-bao-mat" className="underline-anim text-muted-foreground hover:text-foreground">
+          Chính sách bảo mật
         </Link>
       </div>
     </div>

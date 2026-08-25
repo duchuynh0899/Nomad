@@ -4,129 +4,64 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, ShoppingBag, Tag, Truck, CreditCard, Loader2 } from "lucide-react";
+import { ChevronRight, ShoppingBag, Tag, Truck, Loader2, Banknote, QrCode } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/lib/cart-store";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthFetch } from "@/lib/api/auth-fetch";
+import { createOrder } from "@/lib/api/orders";
+import { validateCoupon } from "@/lib/api/coupons";
+import { ApiError } from "@/lib/api/http";
+import type { PaymentMethod, ShippingAddress } from "@/types";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Step = "info" | "shipping" | "payment";
-
-interface ShippingForm {
-  fullName: string;
-  phone: string;
-  email: string;
-  province: string;
-  district: string;
-  ward: string;
-  street: string;
-  note: string;
-}
-
-interface ShippingMethod {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  estimatedDays: string;
-}
-
-interface PaymentMethod {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-const SHIPPING_METHODS: ShippingMethod[] = [
-  {
-    id: "standard",
-    name: "Giao hàng tiêu chuẩn",
-    description: "Giao hàng toàn quốc",
-    price: 30000,
-    estimatedDays: "3–5 ngày",
-  },
-  {
-    id: "express",
-    name: "Giao hàng nhanh",
-    description: "Ưu tiên xử lý & vận chuyển",
-    price: 50000,
-    estimatedDays: "1–2 ngày",
-  },
-  {
-    id: "free",
-    name: "Miễn phí vận chuyển",
-    description: "Áp dụng cho đơn từ 500.000đ",
-    price: 0,
-    estimatedDays: "3–5 ngày",
-  },
-];
-
-const PAYMENT_METHODS: PaymentMethod[] = [
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; description: string; icon: React.ReactNode }[] = [
   {
     id: "cod",
-    name: "Thanh toán khi nhận hàng (COD)",
-    description: "Trả tiền mặt khi nhận hàng",
-    icon: <Truck size={18} />,
+    label: "Thanh toán khi nhận hàng (COD)",
+    description: "Trả tiền mặt khi nhận hàng.",
+    icon: <Banknote size={18} />,
   },
   {
-    id: "bank",
-    name: "Chuyển khoản ngân hàng",
-    description: "Chuyển khoản qua tài khoản ngân hàng",
-    icon: <CreditCard size={18} />,
-  },
-  {
-    id: "momo",
-    name: "Ví MoMo",
-    description: "Thanh toán qua ví điện tử MoMo",
-    icon: <span className="text-xs font-bold text-pink-600">MM</span>,
-  },
-  {
-    id: "vnpay",
-    name: "VNPay",
-    description: "Thanh toán qua cổng VNPay",
-    icon: <span className="text-xs font-bold text-blue-600">VN</span>,
+    id: "payos",
+    label: "Thanh toán online (PayOS)",
+    description: "Quét QR hoặc thanh toán qua ngân hàng/ví điện tử — chuyển sang trang PayOS an toàn.",
+    icon: <QrCode size={18} />,
   },
 ];
+
+type Step = "info" | "review";
 
 const STEP_LABELS: { id: Step; label: string }[] = [
-  { id: "info", label: "Thông tin" },
-  { id: "shipping", label: "Vận chuyển" },
-  { id: "payment", label: "Thanh toán" },
+  { id: "info", label: "Thông tin giao hàng" },
+  { id: "review", label: "Xác nhận & đặt hàng" },
 ];
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function CheckoutClient() {
   const router = useRouter();
   const { items, total, clearCart } = useCartStore();
   const { toast } = useToast();
+  const { authFetch } = useAuthFetch();
 
   const [step, setStep] = useState<Step>("info");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [couponCode, setCouponCode] = useState("");
-  const [discount, setDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState("");
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
 
-  const [form, setForm] = useState<ShippingForm>({
-    fullName: "",
+  const [form, setForm] = useState<ShippingAddress & { note: string }>({
+    recipientName: "",
     phone: "",
-    email: "",
     province: "",
     district: "",
     ward: "",
-    street: "",
+    addressLine: "",
     note: "",
   });
 
-  const [selectedShipping, setSelectedShipping] = useState<string>("standard");
-  const [selectedPayment, setSelectedPayment] = useState<string>("cod");
-
-  const shippingMethod = SHIPPING_METHODS.find((m) => m.id === selectedShipping)!;
   const subtotal = total();
-  const shippingFee = shippingMethod.price;
-  const grandTotal = subtotal + shippingFee - discount;
+  const discount = appliedCoupon?.discount ?? 0;
 
   // Redirect if cart is empty
   if (items.length === 0) {
@@ -134,9 +69,7 @@ export function CheckoutClient() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ShoppingBag size={48} className="text-muted-foreground/30 mb-4" />
         <p className="text-lg font-medium mb-2">Giỏ hàng trống</p>
-        <p className="text-sm text-muted-foreground mb-6">
-          Hãy thêm sản phẩm trước khi thanh toán.
-        </p>
+        <p className="text-sm text-muted-foreground mb-6">Hãy thêm sản phẩm trước khi thanh toán.</p>
         <Link href="/shop" className="btn-primary">
           Mua sắm ngay
         </Link>
@@ -144,46 +77,76 @@ export function CheckoutClient() {
     );
   }
 
-  // ─── Form helpers ─────────────────────────────────────────────────────────
-
-  const updateForm = (field: keyof ShippingForm, value: string) => {
+  const updateForm = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const validateInfo = () => {
-    const required: (keyof ShippingForm)[] = ["fullName", "phone", "email", "province", "district", "ward", "street"];
+    const required: (keyof ShippingAddress)[] = [
+      "recipientName",
+      "phone",
+      "province",
+      "district",
+      "ward",
+      "addressLine",
+    ];
     return required.every((f) => form[f].trim() !== "");
   };
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     setCouponError("");
-    if (couponCode.toUpperCase() === "DWARFS10") {
-      const d = Math.round(subtotal * 0.1);
-      setDiscount(d);
-      toast(`Áp dụng mã giảm giá thành công! Giảm ${formatPrice(d)}`, "success");
-    } else if (couponCode.toUpperCase() === "FREESHIP") {
-      setDiscount(shippingFee);
-      toast("Áp dụng miễn phí vận chuyển thành công!", "success");
-    } else {
-      setCouponError("Mã giảm giá không hợp lệ hoặc đã hết hạn");
+    setCouponChecking(true);
+    try {
+      const res = await validateCoupon(couponCode.trim().toUpperCase(), subtotal);
+      setAppliedCoupon({ code: res.code, discount: res.discount });
+      toast(`Áp dụng mã giảm giá thành công! Giảm ${formatPrice(res.discount)}`, "success");
+    } catch (err) {
+      setAppliedCoupon(null);
+      setCouponError(err instanceof ApiError ? err.message : "Mã giảm giá không hợp lệ");
+    } finally {
+      setCouponChecking(false);
     }
   };
 
   const handlePlaceOrder = async () => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const orderId = Math.random().toString(36).slice(2, 10).toUpperCase();
+      const { recipientName, phone, province, district, ward, addressLine } = form;
+      const order = await authFetch((token) =>
+        createOrder(token, {
+          items: items.map((i) => ({
+            productId: i.product._id,
+            variantId: i.variant.id as string,
+            quantity: i.quantity,
+          })),
+          shippingAddress: { recipientName, phone, province, district, ward, addressLine },
+          note: form.note || undefined,
+          couponCode: appliedCoupon?.code,
+          paymentMethod,
+        })
+      );
       clearCart();
-      router.push(`/checkout/success?orderId=${orderId}`);
-    } catch {
-      toast("Có lỗi xảy ra. Vui lòng thử lại.", "error");
+
+      if (order.paymentMethod === "payos" && order.payment?.checkoutUrl) {
+        // Chuyển hẳn sang trang PayOS để thanh toán — PayOS sẽ redirect về /orders/:id/payment-result sau khi xong.
+        window.location.href = order.payment.checkoutUrl;
+        return;
+      }
+
+      if (order.paymentMethod === "payos" && !order.payment) {
+        toast("Đơn hàng đã được tạo nhưng chưa tạo được link thanh toán. Bạn có thể thử lại ở trang đơn hàng.", "info");
+      }
+
+      router.push(`/checkout/success?orderId=${order._id}`);
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.";
+      toast(message, "error");
       setIsSubmitting(false);
     }
   };
-
-  // ─── Step navigation ──────────────────────────────────────────────────────
 
   const stepIndex = STEP_LABELS.findIndex((s) => s.id === step);
 
@@ -193,25 +156,20 @@ export function CheckoutClient() {
         toast("Vui lòng điền đầy đủ thông tin giao hàng", "error");
         return;
       }
-      setStep("shipping");
-    } else if (step === "shipping") {
-      setStep("payment");
+      setStep("review");
     }
   };
 
   const goBack = () => {
-    if (step === "shipping") setStep("info");
-    if (step === "payment") setStep("shipping");
+    if (step === "review") setStep("info");
   };
-
-  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
       <div className="flex items-center gap-3 mb-10">
         <Link href="/" className="text-xl font-medium tracking-[0.2em] uppercase">
-          Dwarfs
+          Nomad
         </Link>
         <span className="text-muted-foreground/40">/</span>
         <span className="text-sm text-muted-foreground">Thanh toán</span>
@@ -225,21 +183,12 @@ export function CheckoutClient() {
               <div
                 className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors",
-                  i < stepIndex
-                    ? "bg-dwarfs-dark text-white"
-                    : i === stepIndex
-                    ? "bg-dwarfs-dark text-white"
-                    : "bg-dwarfs-surface text-muted-foreground"
+                  i <= stepIndex ? "bg-dwarfs-dark text-white" : "bg-dwarfs-surface text-muted-foreground"
                 )}
               >
                 {i < stepIndex ? "✓" : i + 1}
               </div>
-              <span
-                className={cn(
-                  "text-sm",
-                  i === stepIndex ? "font-medium" : "text-muted-foreground"
-                )}
-              >
+              <span className={cn("text-sm", i === stepIndex ? "font-medium" : "text-muted-foreground")}>
                 {s.label}
               </span>
             </div>
@@ -263,8 +212,8 @@ export function CheckoutClient() {
                 <FormField label="Họ và tên *">
                   <input
                     type="text"
-                    value={form.fullName}
-                    onChange={(e) => updateForm("fullName", e.target.value)}
+                    value={form.recipientName}
+                    onChange={(e) => updateForm("recipientName", e.target.value)}
                     placeholder="Nguyễn Văn A"
                     className="input-base"
                   />
@@ -275,33 +224,19 @@ export function CheckoutClient() {
                     type="tel"
                     value={form.phone}
                     onChange={(e) => updateForm("phone", e.target.value)}
-                    placeholder="0901 234 567"
+                    placeholder="0901234567"
                     className="input-base"
                   />
                 </FormField>
 
-                <FormField label="Email *" className="sm:col-span-2">
+                <FormField label="Tỉnh / Thành phố *" className="sm:col-span-2">
                   <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => updateForm("email", e.target.value)}
-                    placeholder="email@example.com"
-                    className="input-base"
-                  />
-                </FormField>
-
-                <FormField label="Tỉnh / Thành phố *">
-                  <select
+                    type="text"
                     value={form.province}
                     onChange={(e) => updateForm("province", e.target.value)}
-                    className="input-base bg-transparent"
-                  >
-                    <option value="">Chọn tỉnh/thành</option>
-                    <option value="hanoi">Hà Nội</option>
-                    <option value="hcm">TP. Hồ Chí Minh</option>
-                    <option value="danang">Đà Nẵng</option>
-                    <option value="other">Tỉnh/thành khác</option>
-                  </select>
+                    placeholder="Ho Chi Minh City"
+                    className="input-base"
+                  />
                 </FormField>
 
                 <FormField label="Quận / Huyện *">
@@ -324,11 +259,11 @@ export function CheckoutClient() {
                   />
                 </FormField>
 
-                <FormField label="Địa chỉ cụ thể *">
+                <FormField label="Địa chỉ cụ thể *" className="sm:col-span-2">
                   <input
                     type="text"
-                    value={form.street}
-                    onChange={(e) => updateForm("street", e.target.value)}
+                    value={form.addressLine}
+                    onChange={(e) => updateForm("addressLine", e.target.value)}
                     placeholder="Số nhà, tên đường..."
                     className="input-base"
                   />
@@ -346,132 +281,68 @@ export function CheckoutClient() {
               </div>
 
               <button onClick={goNext} className="btn-primary w-full sm:w-auto px-10">
-                Tiếp tục → Vận chuyển
+                Tiếp tục → Xác nhận
               </button>
             </div>
           )}
 
-          {/* ── Step 2: Vận chuyển ── */}
-          {step === "shipping" && (
+          {/* ── Step 2: Xác nhận & đặt hàng ── */}
+          {step === "review" && (
             <div className="space-y-6 animate-fade-in">
-              <h2 className="text-lg font-medium">Phương thức vận chuyển</h2>
+              <h2 className="text-lg font-medium">Xác nhận đơn hàng</h2>
 
-              {/* Delivery address summary */}
               <div className="p-4 bg-dwarfs-surface text-sm space-y-1">
-                <p className="font-medium">{form.fullName} · {form.phone}</p>
-                <p className="text-muted-foreground">
-                  {form.street}, {form.ward}, {form.district},{" "}
-                  {form.province === "hanoi" ? "Hà Nội" : form.province === "hcm" ? "TP. Hồ Chí Minh" : form.province}
+                <p className="font-medium">
+                  {form.recipientName} · {form.phone}
                 </p>
-                <button
-                  onClick={goBack}
-                  className="text-xs underline-anim text-dwarfs-dark mt-1"
-                >
+                <p className="text-muted-foreground">
+                  {form.addressLine}, {form.ward}, {form.district}, {form.province}
+                </p>
+                <button onClick={goBack} className="text-xs underline-anim text-dwarfs-dark mt-1">
                   Chỉnh sửa
                 </button>
               </div>
 
-              {/* Shipping options */}
-              <div className="space-y-3">
-                {SHIPPING_METHODS.map((method) => {
-                  const disabled = method.id === "free" && subtotal < 500000;
-                  return (
-                    <label
-                      key={method.id}
-                      className={cn(
-                        "flex items-center gap-4 p-4 border cursor-pointer transition-colors",
-                        selectedShipping === method.id && !disabled
-                          ? "border-dwarfs-dark bg-dwarfs-surface"
-                          : "border-border hover:border-dwarfs-gray",
-                        disabled && "opacity-40 cursor-not-allowed"
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="shipping"
-                        value={method.id}
-                        checked={selectedShipping === method.id}
-                        onChange={() => !disabled && setSelectedShipping(method.id)}
-                        disabled={disabled}
-                        className="accent-dwarfs-dark"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{method.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {method.description} · {method.estimatedDays}
-                        </p>
-                        {disabled && (
-                          <p className="text-xs text-orange-500 mt-0.5">
-                            Đơn hàng tối thiểu 500.000đ
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">
-                        {method.price === 0 ? "Miễn phí" : formatPrice(method.price)}
-                      </span>
-                    </label>
-                  );
-                })}
+              <div className="flex items-center gap-3 p-4 border border-border">
+                <Truck size={18} className="text-muted-foreground flex-none" />
+                <p className="text-sm text-muted-foreground">
+                  Phí vận chuyển được tính tự động theo khu vực giao hàng và hiển thị ở tổng đơn hàng sau khi
+                  đặt hàng thành công.
+                </p>
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={goBack} className="btn-outline px-6">
-                  ← Quay lại
-                </button>
-                <button onClick={goNext} className="btn-primary px-10">
-                  Tiếp tục → Thanh toán
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3: Thanh toán ── */}
-          {step === "payment" && (
-            <div className="space-y-6 animate-fade-in">
-              <h2 className="text-lg font-medium">Phương thức thanh toán</h2>
-
               <div className="space-y-3">
+                <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+                  Phương thức thanh toán
+                </p>
                 {PAYMENT_METHODS.map((method) => (
                   <label
                     key={method.id}
                     className={cn(
                       "flex items-center gap-4 p-4 border cursor-pointer transition-colors",
-                      selectedPayment === method.id
+                      paymentMethod === method.id
                         ? "border-dwarfs-dark bg-dwarfs-surface"
                         : "border-border hover:border-dwarfs-gray"
                     )}
                   >
                     <input
                       type="radio"
-                      name="payment"
+                      name="paymentMethod"
                       value={method.id}
-                      checked={selectedPayment === method.id}
-                      onChange={() => setSelectedPayment(method.id)}
+                      checked={paymentMethod === method.id}
+                      onChange={() => setPaymentMethod(method.id)}
                       className="accent-dwarfs-dark"
                     />
-                    <div className="w-8 h-8 flex items-center justify-center bg-dwarfs-surface rounded">
+                    <div className="w-8 h-8 flex items-center justify-center bg-dwarfs-surface rounded flex-none">
                       {method.icon}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{method.name}</p>
+                      <p className="text-sm font-medium">{method.label}</p>
                       <p className="text-xs text-muted-foreground">{method.description}</p>
                     </div>
                   </label>
                 ))}
               </div>
-
-              {/* Bank transfer details */}
-              {selectedPayment === "bank" && (
-                <div className="p-4 bg-dwarfs-surface text-sm space-y-2 border-l-2 border-dwarfs-dark animate-fade-in">
-                  <p className="font-medium">Thông tin chuyển khoản</p>
-                  <p>Ngân hàng: <span className="font-medium">Vietcombank</span></p>
-                  <p>Số tài khoản: <span className="font-medium">1234 5678 9012</span></p>
-                  <p>Chủ tài khoản: <span className="font-medium">DWARFS CO., LTD</span></p>
-                  <p className="text-muted-foreground text-xs mt-2">
-                    Nội dung chuyển khoản: Họ tên + SĐT của bạn
-                  </p>
-                </div>
-              )}
 
               <div className="flex gap-3">
                 <button onClick={goBack} className="btn-outline px-6">
@@ -492,10 +363,14 @@ export function CheckoutClient() {
 
               <p className="text-xs text-muted-foreground">
                 Bằng cách đặt hàng, bạn đồng ý với{" "}
-                <Link href="/dieu-khoan-su-dung" className="underline-anim">điều khoản sử dụng</Link>{" "}
+                <Link href="/dieu-khoan-su-dung" className="underline-anim">
+                  điều khoản sử dụng
+                </Link>{" "}
                 và{" "}
-                <Link href="/chinh-sach-bao-mat" className="underline-anim">chính sách bảo mật</Link>{" "}
-                của Dwarfs.
+                <Link href="/chinh-sach-bao-mat" className="underline-anim">
+                  chính sách bảo mật
+                </Link>{" "}
+                của Nomad.
               </p>
             </div>
           )}
@@ -517,7 +392,7 @@ export function CheckoutClient() {
                       {item.product.images[0] && (
                         <Image
                           src={item.product.images[0].url}
-                          alt={item.product.images[0].alt}
+                          alt={item.product.images[0].alt ?? item.product.name}
                           width={56}
                           height={74}
                           className="w-full h-full object-cover"
@@ -529,15 +404,13 @@ export function CheckoutClient() {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium leading-tight line-clamp-2">
-                      {item.product.name}
-                    </p>
+                    <p className="text-xs font-medium leading-tight line-clamp-2">{item.product.name}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {item.variant.size} · {item.variant.color.name}
+                      {item.variant.size} · {item.color.name}
                     </p>
                   </div>
                   <span className="text-xs font-medium flex-none">
-                    {formatPrice(item.product.price * item.quantity)}
+                    {formatPrice(item.product.effectivePrice * item.quantity)}
                   </span>
                 </li>
               ))}
@@ -551,24 +424,25 @@ export function CheckoutClient() {
                   <input
                     type="text"
                     value={couponCode}
-                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponError("");
+                    }}
                     placeholder="Mã giảm giá"
                     className="input-base pl-8 py-2 text-xs uppercase"
                   />
                 </div>
                 <button
                   onClick={handleApplyCoupon}
-                  disabled={!couponCode}
+                  disabled={!couponCode || couponChecking}
                   className="btn-outline px-3 py-2 text-xs disabled:opacity-40"
                 >
-                  Áp dụng
+                  {couponChecking ? "..." : "Áp dụng"}
                 </button>
               </div>
-              {couponError && (
-                <p className="text-xs text-red-500">{couponError}</p>
-              )}
-              {discount > 0 && (
-                <p className="text-xs text-green-600">✓ Đã áp dụng mã giảm giá</p>
+              {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+              {appliedCoupon && (
+                <p className="text-xs text-green-600">✓ Đã áp dụng mã {appliedCoupon.code}</p>
               )}
             </div>
 
@@ -580,13 +454,7 @@ export function CheckoutClient() {
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Phí vận chuyển</span>
-                <span>
-                  {shippingFee === 0 ? (
-                    <span className="text-green-600">Miễn phí</span>
-                  ) : (
-                    formatPrice(shippingFee)
-                  )}
-                </span>
+                <span>Tính khi đặt hàng</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">
@@ -595,11 +463,11 @@ export function CheckoutClient() {
                 </div>
               )}
               <div className="flex justify-between font-medium text-base border-t border-border pt-3 mt-2">
-                <span>Tổng cộng</span>
-                <span>{formatPrice(grandTotal)}</span>
+                <span>Tạm tính sau giảm giá</span>
+                <span>{formatPrice(subtotal - discount)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                (Đã bao gồm VAT nếu có)
+                Tổng cộng chính xác (đã gồm phí ship) hiển thị sau khi đặt hàng thành công.
               </p>
             </div>
           </div>
@@ -622,9 +490,7 @@ function FormField({
 }) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        {label}
-      </label>
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
       {children}
     </div>
   );

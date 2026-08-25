@@ -1,37 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import type { Session } from "next-auth";
-import { User, Package, MapPin, LogOut, ChevronRight } from "lucide-react";
+import { User, Package, MapPin, LogOut, ChevronRight, Loader2 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
+import { useAuthFetch } from "@/lib/api/auth-fetch";
+import { updateMe } from "@/lib/api/users";
+import { listMyOrders } from "@/lib/api/orders";
+import type { Order, OrderStatus } from "@/types/api";
 
 type Tab = "profile" | "orders" | "addresses";
 
-// Tạm — thay bằng data thật khi có API đơn hàng
-const MOCK_ORDERS = [
-  {
-    id: "NM240815",
-    date: "15/08/2026",
-    status: "Đang giao",
-    total: 1290000,
-    items: 2,
-  },
-  {
-    id: "NM240722",
-    date: "22/07/2026",
-    status: "Hoàn tất",
-    total: 890000,
-    items: 1,
-  },
-];
+const statusLabel: Record<OrderStatus, string> = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  shipping: "Đang giao",
+  delivered: "Hoàn tất",
+  cancelled: "Đã huỷ",
+};
 
-const statusColor: Record<string, string> = {
-  "Đang giao": "text-blue-600 bg-blue-50",
-  "Hoàn tất": "text-emerald-600 bg-emerald-50",
-  "Đã huỷ": "text-red-600 bg-red-50",
-  "Chờ xác nhận": "text-orange-600 bg-orange-50",
+const statusColor: Record<OrderStatus, string> = {
+  pending: "text-orange-600 bg-orange-50",
+  confirmed: "text-blue-600 bg-blue-50",
+  shipping: "text-blue-600 bg-blue-50",
+  delivered: "text-emerald-600 bg-emerald-50",
+  cancelled: "text-red-600 bg-red-50",
 };
 
 interface AccountClientProps {
@@ -102,6 +98,8 @@ export function AccountClient({ user }: AccountClientProps) {
 }
 
 function ProfileTab({ user }: { user: Session["user"] }) {
+  const { toast } = useToast();
+  const { authFetch } = useAuthFetch();
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
@@ -109,13 +107,14 @@ function ProfileTab({ user }: { user: Session["user"] }) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    // TODO: gọi API cập nhật profile thật
-    await fetch("/api/account/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone }),
-    }).catch(() => {});
-    setSaving(false);
+    try {
+      await authFetch((token) => updateMe(token, { name, phone: phone || undefined }));
+      toast("Đã cập nhật thông tin tài khoản", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Có lỗi xảy ra", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -154,7 +153,7 @@ function ProfileTab({ user }: { user: Session["user"] }) {
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="0987 654 321"
+            placeholder="0987654321"
             className="w-full border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-dwarfs-dark"
           />
         </div>
@@ -168,33 +167,56 @@ function ProfileTab({ user }: { user: Session["user"] }) {
 }
 
 function OrdersTab() {
+  const { authFetch } = useAuthFetch();
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    authFetch((token) => listMyOrders(token))
+      .then((res) => setOrders(res.items))
+      .catch((err) => setError(err instanceof Error ? err.message : "Không thể tải đơn hàng"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (error) {
+    return <p className="text-sm text-red-500">{error}</p>;
+  }
+
+  if (!orders) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 size={16} className="animate-spin" /> Đang tải đơn hàng...
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2 className="text-lg font-medium mb-6">Đơn hàng của tôi</h2>
-      {MOCK_ORDERS.length === 0 ? (
+      {orders.length === 0 ? (
         <p className="text-sm text-muted-foreground">Bạn chưa có đơn hàng nào.</p>
       ) : (
         <div className="space-y-3">
-          {MOCK_ORDERS.map((order) => (
+          {orders.map((order) => (
             <Link
-              key={order.id}
-              href={`/account/orders/${order.id}`}
+              key={order._id}
+              href={`/account/orders/${order._id}`}
               className="flex items-center justify-between border border-border p-4 hover:border-dwarfs-dark transition-colors"
             >
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-sm font-medium">#{order.id}</span>
+                  <span className="text-sm font-medium">#{order.orderNumber}</span>
                   <span
                     className={cn(
                       "text-xs px-2 py-0.5 rounded-full font-medium",
                       statusColor[order.status]
                     )}
                   >
-                    {order.status}
+                    {statusLabel[order.status]}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {order.date} · {order.items} sản phẩm
+                  {new Date(order.createdAt).toLocaleDateString("vi-VN")} · {order.items.length} sản phẩm
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -214,11 +236,11 @@ function AddressesTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-medium">Sổ địa chỉ</h2>
-        <button className="text-xs font-medium tracking-widest uppercase underline-anim">
-          + Thêm địa chỉ
-        </button>
       </div>
-      <p className="text-sm text-muted-foreground">Bạn chưa lưu địa chỉ nào.</p>
+      <p className="text-sm text-muted-foreground">
+        Sổ địa chỉ chưa được hỗ trợ ở backend — địa chỉ giao hàng được nhập trực tiếp mỗi lần đặt hàng ở
+        bước thanh toán.
+      </p>
     </div>
   );
 }
