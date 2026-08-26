@@ -8,6 +8,20 @@ import type {
   ProductInput,
 } from "@/types/api";
 
+// Backend trả variant với field `_id` (không phải `id`) khi đọc — xem ghi chú ở
+// types/api.ts::ProductVariant. Đồng bộ ngay tại đây để mọi nơi khác trong FE
+// (cart, checkout, admin) chỉ cần đọc `variant.id` mà không lo undefined.
+function normalizeProduct(product: Product): Product {
+  return {
+    ...product,
+    variants: product.variants.map((v) => ({ ...v, id: v.id ?? v._id })),
+  };
+}
+
+function normalizePaginated(result: PaginatedResult<Product>): PaginatedResult<Product> {
+  return { ...result, items: result.items.map(normalizeProduct) };
+}
+
 function toQueryParams(params: ListProductsParams) {
   return {
     page: params.page,
@@ -24,32 +38,38 @@ function toQueryParams(params: ListProductsParams) {
   };
 }
 
-export function listProducts(params: ListProductsParams = {}) {
-  return apiFetch<PaginatedResult<Product>>(`/products${buildQuery(toQueryParams(params))}`);
+export async function listProducts(params: ListProductsParams = {}) {
+  const res = await apiFetch<PaginatedResult<Product>>(`/products${buildQuery(toQueryParams(params))}`);
+  return normalizePaginated(res);
 }
 
-export function getProduct(idOrSlug: string) {
-  return apiFetch<Product>(`/products/${idOrSlug}`);
+export async function getProduct(idOrSlug: string) {
+  const product = await apiFetch<Product>(`/products/${idOrSlug}`);
+  return normalizeProduct(product);
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
-export function adminListProducts(token: string, params: ListProductsParams = {}) {
-  return apiFetch<PaginatedResult<Product>>(`/admin/products${buildQuery(toQueryParams(params))}`, {
+export async function adminListProducts(token: string, params: ListProductsParams = {}) {
+  const res = await apiFetch<PaginatedResult<Product>>(`/admin/products${buildQuery(toQueryParams(params))}`, {
     token,
   });
+  return normalizePaginated(res);
 }
 
-export function adminGetProduct(token: string, id: string) {
-  return apiFetch<Product>(`/admin/products/${id}`, { token });
+export async function adminGetProduct(token: string, id: string) {
+  const product = await apiFetch<Product>(`/admin/products/${id}`, { token });
+  return normalizeProduct(product);
 }
 
-export function adminCreateProduct(token: string, input: ProductInput) {
-  return apiFetch<Product>("/admin/products", { method: "POST", token, body: input });
+export async function adminCreateProduct(token: string, input: ProductInput) {
+  const product = await apiFetch<Product>("/admin/products", { method: "POST", token, body: input });
+  return normalizeProduct(product);
 }
 
-export function adminUpdateProduct(token: string, id: string, input: Partial<ProductInput>) {
-  return apiFetch<Product>(`/admin/products/${id}`, { method: "PATCH", token, body: input });
+export async function adminUpdateProduct(token: string, id: string, input: Partial<ProductInput>) {
+  const product = await apiFetch<Product>(`/admin/products/${id}`, { method: "PATCH", token, body: input });
+  return normalizeProduct(product);
 }
 
 export function adminDeleteProduct(token: string, id: string) {

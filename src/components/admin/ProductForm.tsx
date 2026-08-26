@@ -153,7 +153,9 @@ export function ProductForm({ initialData }: ProductFormProps) {
         category: categoryId,
         images,
         colors,
-        variants,
+        // `_id` là field FE tự thêm khi đọc (xem normalizeProduct ở lib/api/products.ts) — backend
+        // chỉ nhận `id` để khớp variant cũ, gửi kèm `_id` lạ có thể bị whitelist strict từ chối (400).
+        variants: variants.map(({ _id, ...v }) => v),
         information,
         isBestSeller,
         isActive,

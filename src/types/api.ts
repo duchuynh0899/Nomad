@@ -49,7 +49,12 @@ export interface ProductImage {
 }
 
 export interface ProductVariant {
+  // Backend trả field `_id` khi ĐỌC (GET /products, GET /products/:id...), nhưng nhận field
+  // `id` khi GHI (PATCH variants — xem API_REFERENCE.md mục "Quan trọng khi PATCH variants").
+  // normalizeProduct() ở lib/api/products.ts luôn đồng bộ `id = _id` ngay sau khi fetch,
+  // nên mọi nơi khác trong FE chỉ cần dùng `variant.id`.
   id?: string;
+  _id?: string;
   sku: string;
   color: string; // slug, khớp với ProductColor.slug
   size: string;
