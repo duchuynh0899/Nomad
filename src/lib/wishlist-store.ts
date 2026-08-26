@@ -16,27 +16,27 @@ export const useWishlistStore = create<WishlistStore>()(
       items: [],
 
       addItem: (product) => {
-        if (!get().isWishlisted(product.id)) {
+        if (!get().isWishlisted(product._id)) {
           set((state) => ({ items: [...state.items, product] }));
         }
       },
 
       removeItem: (productId) => {
         set((state) => ({
-          items: state.items.filter((item) => item.id !== productId),
+          items: state.items.filter((item) => item._id !== productId),
         }));
       },
 
       toggleItem: (product) => {
-        if (get().isWishlisted(product.id)) {
-          get().removeItem(product.id);
+        if (get().isWishlisted(product._id)) {
+          get().removeItem(product._id);
         } else {
           get().addItem(product);
         }
       },
 
       isWishlisted: (productId) => {
-        return get().items.some((item) => item.id === productId);
+        return get().items.some((item) => item._id === productId);
       },
     }),
     {

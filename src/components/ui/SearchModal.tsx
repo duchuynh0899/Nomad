@@ -3,53 +3,49 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, X, ArrowRight } from "lucide-react";
+import { Search, X, ArrowRight, Loader2 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
-import { PRODUCTS } from "@/lib/data";
-import type { ProductListItem } from "@/types";
+import { listProducts } from "@/lib/api/products";
+import type { Product } from "@/types";
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-function getProductListItem(product: (typeof PRODUCTS)[0]): ProductListItem {
-  return {
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    price: product.price,
-    originalPrice: product.originalPrice,
-    images: product.images,
-    colors: product.colors,
-    isNew: product.isNew,
-    isBestSeller: product.isBestSeller,
-    category: product.category,
-  };
-}
-
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const results =
-    query.length >= 2
-      ? PRODUCTS.filter(
-          (p) =>
-            p.name.toLowerCase().includes(query.toLowerCase()) ||
-            p.tags.some((tag) => tag.toLowerCase().includes(query.toLowerCase()))
-        )
-          .slice(0, 6)
-          .map(getProductListItem)
-      : [];
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isOpen) {
+        inputRef.current?.focus();
+      } else {
+        setQuery("");
+        setResults([]);
+      }
+    }, isOpen ? 100 : 0);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    } else {
-      setQuery("");
-    }
-  }, [isOpen]);
+    const trimmed = query.trim();
+    const timer = setTimeout(() => {
+      if (trimmed.length < 2) {
+        setResults([]);
+        return;
+      }
+      setLoading(true);
+      listProducts({ search: trimmed, limit: 6 })
+        .then((res) => setResults(res.items))
+        .catch(() => setResults([]))
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // Close on Escape
   useEffect(() => {
@@ -90,6 +86,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             placeholder="Tìm kiếm sản phẩm..."
             className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
           />
+          {loading && <Loader2 size={14} className="animate-spin text-muted-foreground flex-none" />}
           {query && (
             <button onClick={() => setQuery("")} className="p-1" aria-label="Xóa">
               <X size={14} />
@@ -106,20 +103,20 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         {/* Results */}
         {query.length >= 2 && (
           <div className="max-h-[60vh] overflow-y-auto p-4">
-            {results.length === 0 ? (
+            {!loading && results.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 Không tìm thấy kết quả cho &ldquo;{query}&rdquo;
               </p>
             ) : (
               <>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {results.length} kết quả
-                </p>
+                {results.length > 0 && (
+                  <p className="text-xs text-muted-foreground mb-3">{results.length} kết quả</p>
+                )}
                 <ul className="space-y-2">
                   {results.map((product) => (
-                    <li key={product.id}>
+                    <li key={product._id}>
                       <Link
-                        href={`/shop/${product.category}/${product.slug}`}
+                        href={`/shop/${product.category.slug}/${product.slug}`}
                         onClick={onClose}
                         className="flex items-center gap-3 p-2 hover:bg-dwarfs-surface rounded-sm transition-colors group"
                       >
@@ -127,7 +124,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           {product.images[0] && (
                             <Image
                               src={product.images[0].url}
-                              alt={product.images[0].alt}
+                              alt={product.images[0].alt ?? product.name}
                               width={48}
                               height={64}
                               className="w-full h-full object-cover"

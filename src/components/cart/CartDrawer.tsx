@@ -79,14 +79,14 @@ export function CartDrawer() {
                 <li key={item.id} className="flex gap-4 py-4 border-b border-border last:border-b-0">
                   {/* Image */}
                   <Link
-                    href={`/shop/${item.product.category}/${item.product.slug}`}
+                    href={`/shop/${item.product.category.slug}/${item.product.slug}`}
                     onClick={closeCart}
                     className="flex-none w-20 aspect-[3/4] bg-dwarfs-surface overflow-hidden"
                   >
                     {item.product.images[0] && (
                       <Image
                         src={item.product.images[0].url}
-                        alt={item.product.images[0].alt}
+                        alt={item.product.images[0].alt ?? item.product.name}
                         width={80}
                         height={107}
                         className="w-full h-full object-cover"
@@ -99,14 +99,14 @@ export function CartDrawer() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <Link
-                          href={`/shop/${item.product.category}/${item.product.slug}`}
+                          href={`/shop/${item.product.category.slug}/${item.product.slug}`}
                           onClick={closeCart}
                           className="text-sm font-medium leading-tight hover:underline line-clamp-2"
                         >
                           {item.product.name}
                         </Link>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Size: {item.variant.size} · Màu: {item.variant.color.name}
+                          Size: {item.variant.size} · Màu: {item.color.name}
                         </p>
                       </div>
 
@@ -143,7 +143,7 @@ export function CartDrawer() {
                       </div>
 
                       <span className="text-sm font-medium">
-                        {formatPrice(item.product.price * item.quantity)}
+                        {formatPrice(item.product.effectivePrice * item.quantity)}
                       </span>
                     </div>
                   </div>

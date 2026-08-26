@@ -70,3 +70,7 @@ body {
 .badge-new {
   @apply absolute top-3 left-3 bg-dwarfs-dark text-dwarfs-light text-[10px] font-medium uppercase tracking-widest px-2 py-1;
 }
+
+.badge-sale {
+  @apply absolute top-3 left-3 bg-red-600 text-white text-[10px] font-medium uppercase tracking-widest px-2 py-1;
+}
