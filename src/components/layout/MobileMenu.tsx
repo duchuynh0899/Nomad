@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { X, ChevronRight } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { X, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/types";
 
@@ -13,6 +14,9 @@ interface MobileMenuProps {
 }
 
 export function MobileMenu({ isOpen, onClose, navItems }: MobileMenuProps) {
+  const { status } = useSession();
+  const isAuthed = status === "authenticated";
+
   // Lock scroll
   useEffect(() => {
     if (isOpen) {
@@ -68,9 +72,31 @@ export function MobileMenu({ isOpen, onClose, navItems }: MobileMenuProps) {
 
         {/* Bottom links */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-border p-6 space-y-3">
-          <Link href="/account" onClick={onClose} className="block text-sm text-muted-foreground hover:text-foreground underline-anim">
-            Tài khoản
-          </Link>
+          {isAuthed ? (
+            <>
+              <Link href="/account" onClick={onClose} className="block text-sm text-muted-foreground hover:text-foreground underline-anim">
+                Tài khoản của tôi
+              </Link>
+              <button
+                onClick={() => {
+                  onClose();
+                  signOut({ callbackUrl: "/" });
+                }}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground underline-anim"
+              >
+                <LogOut size={14} />
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              onClick={onClose}
+              className="block text-sm font-medium text-foreground underline-anim"
+            >
+              Đăng nhập / Đăng ký
+            </Link>
+          )}
           <Link href="/wishlist" onClick={onClose} className="block text-sm text-muted-foreground hover:text-foreground underline-anim">
             Danh sách yêu thích
           </Link>

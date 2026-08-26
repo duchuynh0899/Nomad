@@ -1,7 +1,7 @@
 // lib/api/http.ts — fetch wrapper dùng chung cho toàn bộ lib/api/*
 import type { ApiErrorBody } from "@/types/api";
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://nomadstudio.click";
 
 export class ApiError extends Error {
   statusCode: number;

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Search, Heart, User, ShoppingBag, Menu } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { Search, Heart, User, ShoppingBag, Menu, LogOut, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/cart-store";
 import { useWishlistStore } from "@/lib/wishlist-store";
@@ -15,9 +16,14 @@ interface HeaderClientProps {
 }
 
 export function HeaderClient({ navItems }: HeaderClientProps) {
+  const { data: session, status } = useSession();
+  const isAuthed = status === "authenticated";
+
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   const itemCount = useCartStore((state) => state.itemCount());
   const wishlistCount = useWishlistStore((state) => state.items.length);
@@ -28,6 +34,18 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Đóng dropdown tài khoản khi bấm ra ngoài
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [accountMenuOpen]);
 
   return (
     <>
@@ -94,13 +112,63 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 )}
               </Link>
 
-              <Link
-                href="/account"
-                className="p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
-                aria-label="Tài khoản"
-              >
-                <User size={18} />
-              </Link>
+              {isAuthed ? (
+                <div className="relative" ref={accountMenuRef}>
+                  <button
+                    onClick={() => setAccountMenuOpen((v) => !v)}
+                    className="flex items-center gap-1 p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
+                    aria-label="Tài khoản"
+                    aria-expanded={accountMenuOpen}
+                  >
+                    <User size={18} />
+                    <ChevronDown size={12} className={cn("transition-transform", accountMenuOpen && "rotate-180")} />
+                  </button>
+
+                  {accountMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 border border-border bg-[var(--background)] shadow-lg py-2 z-50">
+                      <div className="px-4 py-2 border-b border-border">
+                        <p className="text-sm font-medium truncate">{session?.user?.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+                      </div>
+                      <Link
+                        href="/account"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="block px-4 py-2.5 text-sm hover:bg-dwarfs-surface transition-colors"
+                      >
+                        Tài khoản của tôi
+                      </Link>
+                      {session?.user?.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setAccountMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm hover:bg-dwarfs-surface transition-colors"
+                        >
+                          Trang quản trị
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => {
+                          setAccountMenuOpen(false);
+                          signOut({ callbackUrl: "/" });
+                        }}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-left hover:bg-dwarfs-surface transition-colors"
+                      >
+                        <LogOut size={14} />
+                        Đăng xuất
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 pl-2 pr-3 py-2 sm:border sm:border-border sm:rounded-full hover:bg-dwarfs-surface transition-colors"
+                  aria-label="Đăng nhập / Đăng ký"
+                >
+                  <User size={18} />
+                  <span className="hidden sm:inline text-sm font-medium whitespace-nowrap">Đăng nhập</span>
+                </Link>
+              )}
 
               <button
                 className="relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
