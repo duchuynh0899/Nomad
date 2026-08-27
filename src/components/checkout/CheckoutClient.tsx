@@ -109,6 +109,17 @@ export function CheckoutClient() {
   };
 
   const handlePlaceOrder = async () => {
+    // Phòng trường hợp item giỏ hàng cũ (lưu từ trước khi FE vá variant.id từ variant._id)
+    // lọt qua bước tự vá ở cart-store — chặn sớm thay vì gửi variantId undefined lên BE (lỗi 400).
+    const invalidItem = items.find((i) => !i.variant.id && !i.variant._id);
+    if (invalidItem) {
+      toast(
+        `Sản phẩm "${invalidItem.product.name}" trong giỏ hàng bị thiếu thông tin biến thể — vui lòng xoá và thêm lại sản phẩm này.`,
+        "error"
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { recipientName, phone, province, district, ward, addressLine } = form;
@@ -116,7 +127,7 @@ export function CheckoutClient() {
         createOrder(token, {
           items: items.map((i) => ({
             productId: i.product._id,
-            variantId: i.variant.id as string,
+            variantId: (i.variant.id ?? i.variant._id) as string,
             quantity: i.quantity,
           })),
           shippingAddress: { recipientName, phone, province, district, ward, addressLine },
