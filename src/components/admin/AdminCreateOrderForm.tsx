@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Search, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthFetch } from "@/lib/api/auth-fetch";
+import { VietnamAddressSelects } from "@/components/shared/VietnamAddressSelects";
 import { adminListProducts } from "@/lib/api/products";
 import { adminCreateOrder } from "@/lib/api/orders";
 import { ApiError } from "@/lib/api/http";
@@ -212,23 +213,14 @@ export function AdminCreateOrderForm() {
             placeholder="Số điện thoại"
             className="border border-border px-3 py-2 text-sm bg-white"
           />
-          <input
-            value={form.province}
-            onChange={(e) => setForm((f) => ({ ...f, province: e.target.value }))}
-            placeholder="Tỉnh/thành"
-            className="border border-border px-3 py-2 text-sm bg-white col-span-2"
-          />
-          <input
-            value={form.district}
-            onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))}
-            placeholder="Quận/huyện"
-            className="border border-border px-3 py-2 text-sm bg-white"
-          />
-          <input
-            value={form.ward}
-            onChange={(e) => setForm((f) => ({ ...f, ward: e.target.value }))}
-            placeholder="Phường/xã"
-            className="border border-border px-3 py-2 text-sm bg-white"
+          <VietnamAddressSelects
+            province={form.province}
+            district={form.district}
+            ward={form.ward}
+            onChange={(next) => setForm((f) => ({ ...f, ...next }))}
+            showLabels={false}
+            selectClassName="border border-border px-3 py-2 text-sm bg-white w-full"
+            provinceWrapperClassName="col-span-2"
           />
           <input
             value={form.addressLine}

@@ -58,53 +58,56 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
         )}
       >
         <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-14 items-center justify-between">
+          {/* grid 2 cột 2 bên bằng nhau (1fr) để logo ở giữa luôn canh đúng tâm và không bao giờ
+              bị cụm icon/nav đè lên, dù nội dung 2 bên dài/rộng khác nhau (thay cho absolute cũ). */}
+          <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
             {/* Mobile: Menu button */}
-            <button
-              className="lg:hidden p-2 -ml-2"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Mở menu"
-            >
-              <Menu size={20} />
-            </button>
+            <div className="flex items-center justify-self-start">
+              <button
+                className="lg:hidden p-2 -ml-2"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Mở menu"
+              >
+                <Menu size={22} />
+              </button>
 
-            {/* Desktop: Nav */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm underline-anim text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+              {/* Desktop: Nav */}
+              <nav className="hidden lg:flex items-center gap-8">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
 
             {/* Logo – centered */}
-            <Link
-              href="/"
-              className="absolute left-1/2 -translate-x-1/2 text-xl font-medium tracking-[0.2em] uppercase"
-            >
+            <Link href="/" className="text-2xl font-medium tracking-[0.2em] uppercase whitespace-nowrap">
               Nomad
             </Link>
 
             {/* Right icons */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 justify-self-end">
               <button
                 className="p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Tìm kiếm"
               >
-                <Search size={18} />
+                <Search size={20} />
               </button>
 
+              {/* Yêu thích/Tài khoản đã có sẵn trong menu hamburger (MobileMenu) — ẩn khỏi thanh
+                  header trên điện thoại nhỏ để cụm icon không quá rộng, tránh đè lên logo giữa. */}
               <Link
                 href="/wishlist"
-                className="relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
+                className="hidden sm:inline-flex relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
                 aria-label="Danh sách yêu thích"
               >
-                <Heart size={18} />
+                <Heart size={20} />
                 {wishlistCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-dwarfs-dark text-[10px] font-medium text-white">
                     {wishlistCount}
@@ -112,6 +115,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 )}
               </Link>
 
+              <div className="hidden sm:block">
               {isAuthed ? (
                 <div className="relative" ref={accountMenuRef}>
                   <button
@@ -120,7 +124,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                     aria-label="Tài khoản"
                     aria-expanded={accountMenuOpen}
                   >
-                    <User size={18} />
+                    <User size={20} />
                     <ChevronDown size={12} className={cn("transition-transform", accountMenuOpen && "rotate-180")} />
                   </button>
 
@@ -165,17 +169,18 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                   className="flex items-center gap-1.5 pl-2 pr-3 py-2 sm:border sm:border-border sm:rounded-full hover:bg-dwarfs-surface transition-colors"
                   aria-label="Đăng nhập / Đăng ký"
                 >
-                  <User size={18} />
+                  <User size={20} />
                   <span className="hidden sm:inline text-sm font-medium whitespace-nowrap">Đăng nhập</span>
                 </Link>
               )}
+              </div>
 
               <button
                 className="relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
                 onClick={toggleCart}
                 aria-label="Giỏ hàng"
               >
-                <ShoppingBag size={18} />
+                <ShoppingBag size={20} />
                 {itemCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-dwarfs-dark text-[10px] font-medium text-white">
                     {itemCount > 9 ? "9+" : itemCount}

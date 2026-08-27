@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useAuthFetch } from "@/lib/api/auth-fetch";
 import { updateMe } from "@/lib/api/users";
 import { listMyOrders } from "@/lib/api/orders";
+import { AddressBook } from "./AddressBook";
 import type { Order, OrderStatus } from "@/types/api";
 
 type Tab = "profile" | "orders" | "addresses";
@@ -232,15 +233,5 @@ function OrdersTab() {
 }
 
 function AddressesTab() {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-medium">Sổ địa chỉ</h2>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Sổ địa chỉ chưa được hỗ trợ ở backend — địa chỉ giao hàng được nhập trực tiếp mỗi lần đặt hàng ở
-        bước thanh toán.
-      </p>
-    </div>
-  );
+  return <AddressBook />;
 }

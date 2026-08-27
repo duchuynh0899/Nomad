@@ -2,13 +2,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
-import { LayoutDashboard, Package, ShoppingBag, Users, Tag, Ticket, Truck, Zap, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Tag, Ticket, Truck, Zap, Image as ImageIcon, ArrowLeft } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/admin/products", label: "Sản phẩm", icon: Package },
   { href: "/admin/products/flash-sale", label: "Flash sale", icon: Zap },
   { href: "/admin/categories", label: "Danh mục", icon: Tag },
+  { href: "/admin/banners", label: "Banner", icon: ImageIcon },
   { href: "/admin/orders", label: "Đơn hàng", icon: ShoppingBag },
   { href: "/admin/coupons", label: "Mã giảm giá", icon: Ticket },
   { href: "/admin/settings/shipping", label: "Phí vận chuyển", icon: Truck },

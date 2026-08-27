@@ -39,7 +39,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: product.name,
       description,
-      images: image ? [{ url: image }] : undefined,
+      images: image ? [{ url: image, alt: product.name }] : undefined,
+    },
+    twitter: image ? { card: "summary_large_image", images: [image] } : undefined,
+    other: {
+      "product:price:amount": String(getPriceDisplay(product).current),
+      "product:price:currency": "VND",
+      "product:availability": product.variants.some((v) => v.stock > 0) ? "in stock" : "out of stock",
     },
   };
 }
@@ -60,11 +66,13 @@ export default async function ProductPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
+    url: `${SITE_URL}/shop/${product.category.slug}/${product.slug}`,
     image: product.images.map((img) => img.url),
     description: product.information
       ? truncate(stripHtml(product.information), 500)
       : undefined,
     sku: product.variants[0]?.sku,
+    category: product.category.name,
     brand: { "@type": "Brand", name: "Nomad" },
     offers: {
       "@type": "Offer",

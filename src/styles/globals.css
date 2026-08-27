@@ -50,27 +50,33 @@ body {
   display: none;
 }
 
-/* Components */
-.btn-primary {
-  @apply bg-dwarfs-dark text-dwarfs-light px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200 hover:bg-dwarfs-gray;
-}
+/* Components — bọc trong @layer components để class tiện ích Tailwind (vd pl-8, py-2) thêm sau
+   trong className vẫn override được các class này. Nếu để rule trần (không @layer) thì theo CSS
+   Cascade Layers, rule trần luôn thắng rule trong @layer utilities bất kể thứ tự — khiến mọi
+   override kiểu `"input-base pl-8"` bị lờ đi âm thầm (đây là nguyên nhân icon đè chữ ở ô nhập mã
+   giảm giá lúc trước). */
+@layer components {
+  .btn-primary {
+    @apply bg-dwarfs-dark text-dwarfs-light px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200 hover:bg-dwarfs-gray;
+  }
 
-.btn-outline {
-  @apply border border-dwarfs-dark text-dwarfs-dark px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200 hover:bg-dwarfs-dark hover:text-dwarfs-light;
-}
+  .btn-outline {
+    @apply border border-dwarfs-dark text-dwarfs-dark px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200 hover:bg-dwarfs-dark hover:text-dwarfs-light;
+  }
 
-.btn-ghost {
-  @apply text-dwarfs-dark px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-dwarfs-surface;
-}
+  .btn-ghost {
+    @apply text-dwarfs-dark px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-dwarfs-surface;
+  }
 
-.input-base {
-  @apply w-full border border-border bg-transparent px-4 py-3 text-sm;
-}
+  .input-base {
+    @apply w-full border border-border bg-transparent px-4 py-3 text-sm;
+  }
 
-.badge-new {
-  @apply absolute top-3 left-3 bg-dwarfs-dark text-dwarfs-light text-[10px] font-medium uppercase tracking-widest px-2 py-1;
-}
+  .badge-new {
+    @apply absolute top-3 left-3 bg-dwarfs-dark text-dwarfs-light text-[10px] font-medium uppercase tracking-widest px-2 py-1;
+  }
 
-.badge-sale {
-  @apply absolute top-3 left-3 bg-red-600 text-white text-[10px] font-medium uppercase tracking-widest px-2 py-1;
+  .badge-sale {
+    @apply absolute top-3 left-3 bg-red-600 text-white text-[10px] font-medium uppercase tracking-widest px-2 py-1;
+  }
 }

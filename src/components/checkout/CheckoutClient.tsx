@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, ShoppingBag, Tag, Truck, Loader2, Banknote, QrCode } from "lucide-react";
+import { ChevronRight, ShoppingBag, Tag, Truck, Loader2, Banknote, QrCode, Check } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
+import { VietnamAddressSelects } from "@/components/shared/VietnamAddressSelects";
 import { useCartStore } from "@/lib/cart-store";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthFetch } from "@/lib/api/auth-fetch";
 import { createOrder } from "@/lib/api/orders";
+import { createAddress, listMyAddresses } from "@/lib/api/addresses";
 import { validateCoupon } from "@/lib/api/coupons";
 import { ApiError } from "@/lib/api/http";
-import type { PaymentMethod, ShippingAddress } from "@/types";
+import { PayosEmbeddedCheckout } from "./PayosEmbeddedCheckout";
+import type { Address, PaymentMethod, ShippingAddress } from "@/types";
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; description: string; icon: React.ReactNode }[] = [
   {
@@ -40,7 +43,7 @@ export function CheckoutClient() {
   const router = useRouter();
   const { items, total, clearCart } = useCartStore();
   const { toast } = useToast();
-  const { authFetch } = useAuthFetch();
+  const { authFetch, accessToken } = useAuthFetch();
 
   const [step, setStep] = useState<Step>("info");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,6 +52,8 @@ export function CheckoutClient() {
   const [couponError, setCouponError] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [payosCheckoutUrl, setPayosCheckoutUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState<ShippingAddress & { note: string }>({
     recipientName: "",
@@ -59,6 +64,48 @@ export function CheckoutClient() {
     addressLine: "",
     note: "",
   });
+
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+
+  const applySavedAddress = (address: Address) => {
+    setSelectedAddressId(address._id);
+    setForm((prev) => ({
+      ...prev,
+      recipientName: address.recipientName,
+      phone: address.phone,
+      province: address.province,
+      district: address.district,
+      ward: address.ward,
+      addressLine: address.addressLine,
+    }));
+  };
+
+  const useNewAddress = () => {
+    setSelectedAddressId(null);
+    setForm((prev) => ({
+      ...prev,
+      recipientName: "",
+      phone: "",
+      province: "",
+      district: "",
+      ward: "",
+      addressLine: "",
+    }));
+  };
+
+  useEffect(() => {
+    if (!accessToken) return;
+    authFetch((token) => listMyAddresses(token))
+      .then((list) => {
+        setSavedAddresses(list);
+        const preferred = list.find((a) => a.isDefault) ?? list[0];
+        if (preferred) applySavedAddress(preferred);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
 
   const subtotal = total();
   const discount = appliedCoupon?.discount ?? 0;
@@ -78,6 +125,7 @@ export function CheckoutClient() {
   }
 
   const updateForm = (field: keyof typeof form, value: string) => {
+    if (field !== "note") setSelectedAddressId(null);
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -138,9 +186,18 @@ export function CheckoutClient() {
       );
       clearCart();
 
+      if (saveAddress && selectedAddressId === null) {
+        authFetch((token) => createAddress(token, { recipientName, phone, province, district, ward, addressLine })).catch(
+          () => {}
+        );
+      }
+
       if (order.paymentMethod === "payos" && order.payment?.checkoutUrl) {
-        // Chuyển hẳn sang trang PayOS để thanh toán — PayOS sẽ redirect về /orders/:id/payment-result sau khi xong.
-        window.location.href = order.payment.checkoutUrl;
+        // Nhúng cổng thanh toán ngay tại trang thay vì chuyển hẳn sang PayOS — webhook vẫn là nơi
+        // xác nhận đã thanh toán thật sự, onSuccess ở đây chỉ để điều hướng UX.
+        setPlacedOrderId(order._id);
+        setPayosCheckoutUrl(order.payment.checkoutUrl);
+        setIsSubmitting(false);
         return;
       }
 
@@ -219,6 +276,47 @@ export function CheckoutClient() {
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-lg font-medium">Thông tin giao hàng</h2>
 
+              {savedAddresses.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    Sổ địa chỉ
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {savedAddresses.map((address) => (
+                      <button
+                        key={address._id}
+                        type="button"
+                        onClick={() => applySavedAddress(address)}
+                        className={cn(
+                          "flex items-center gap-2 border px-3 py-2 text-xs text-left transition-colors max-w-xs",
+                          selectedAddressId === address._id
+                            ? "border-dwarfs-dark bg-dwarfs-surface"
+                            : "border-border hover:border-dwarfs-gray"
+                        )}
+                      >
+                        {selectedAddressId === address._id && <Check size={12} className="flex-none" />}
+                        <span className="truncate">
+                          <span className="font-medium">{address.recipientName}</span> ·{" "}
+                          {address.addressLine}, {address.ward}
+                        </span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={useNewAddress}
+                      className={cn(
+                        "border px-3 py-2 text-xs transition-colors",
+                        selectedAddressId === null
+                          ? "border-dwarfs-dark bg-dwarfs-surface"
+                          : "border-border hover:border-dwarfs-gray"
+                      )}
+                    >
+                      + Địa chỉ khác
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField label="Họ và tên *">
                   <input
@@ -240,35 +338,16 @@ export function CheckoutClient() {
                   />
                 </FormField>
 
-                <FormField label="Tỉnh / Thành phố *" className="sm:col-span-2">
-                  <input
-                    type="text"
-                    value={form.province}
-                    onChange={(e) => updateForm("province", e.target.value)}
-                    placeholder="Ho Chi Minh City"
-                    className="input-base"
-                  />
-                </FormField>
-
-                <FormField label="Quận / Huyện *">
-                  <input
-                    type="text"
-                    value={form.district}
-                    onChange={(e) => updateForm("district", e.target.value)}
-                    placeholder="Quận / Huyện"
-                    className="input-base"
-                  />
-                </FormField>
-
-                <FormField label="Phường / Xã *">
-                  <input
-                    type="text"
-                    value={form.ward}
-                    onChange={(e) => updateForm("ward", e.target.value)}
-                    placeholder="Phường / Xã"
-                    className="input-base"
-                  />
-                </FormField>
+                <VietnamAddressSelects
+                  province={form.province}
+                  district={form.district}
+                  ward={form.ward}
+                  onChange={(next) => {
+                    setSelectedAddressId(null);
+                    setForm((prev) => ({ ...prev, ...next }));
+                  }}
+                  provinceWrapperClassName="sm:col-span-2"
+                />
 
                 <FormField label="Địa chỉ cụ thể *" className="sm:col-span-2">
                   <input
@@ -290,6 +369,17 @@ export function CheckoutClient() {
                   />
                 </FormField>
               </div>
+
+              {accessToken && selectedAddressId === null && (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                  />
+                  Lưu địa chỉ này vào sổ địa chỉ cho lần sau
+                </label>
+              )}
 
               <button onClick={goNext} className="btn-primary w-full sm:w-auto px-10">
                 Tiếp tục → Xác nhận
@@ -314,75 +404,99 @@ export function CheckoutClient() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 p-4 border border-border">
-                <Truck size={18} className="text-muted-foreground flex-none" />
-                <p className="text-sm text-muted-foreground">
-                  Phí vận chuyển được tính tự động theo khu vực giao hàng và hiển thị ở tổng đơn hàng sau khi
-                  đặt hàng thành công.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
-                  Phương thức thanh toán
-                </p>
-                {PAYMENT_METHODS.map((method) => (
-                  <label
-                    key={method.id}
-                    className={cn(
-                      "flex items-center gap-4 p-4 border cursor-pointer transition-colors",
-                      paymentMethod === method.id
-                        ? "border-dwarfs-dark bg-dwarfs-surface"
-                        : "border-border hover:border-dwarfs-gray"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={method.id}
-                      checked={paymentMethod === method.id}
-                      onChange={() => setPaymentMethod(method.id)}
-                      className="accent-dwarfs-dark"
+              {payosCheckoutUrl && placedOrderId ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+                    Quét mã hoặc thanh toán qua ngân hàng/ví điện tử
+                  </p>
+                  <div className="border border-border p-2">
+                    <PayosEmbeddedCheckout
+                      checkoutUrl={payosCheckoutUrl}
+                      returnUrl={`${window.location.origin}/orders/${placedOrderId}/payment-result?status=success`}
+                      onSuccess={() => router.push(`/orders/${placedOrderId}/payment-result?status=success`)}
+                      onCancel={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
                     />
-                    <div className="w-8 h-8 flex items-center justify-center bg-dwarfs-surface rounded flex-none">
-                      {method.icon}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{method.label}</p>
-                      <p className="text-xs text-muted-foreground">{method.description}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
+                    className="text-xs underline-anim text-muted-foreground"
+                  >
+                    Huỷ, thanh toán sau
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 p-4 border border-border">
+                    <Truck size={18} className="text-muted-foreground flex-none" />
+                    <p className="text-sm text-muted-foreground">
+                      Phí vận chuyển được tính tự động theo khu vực giao hàng và hiển thị ở tổng đơn hàng sau
+                      khi đặt hàng thành công.
+                    </p>
+                  </div>
 
-              <div className="flex gap-3">
-                <button onClick={goBack} className="btn-outline px-6">
-                  ← Quay lại
-                </button>
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={isSubmitting}
-                  className={cn(
-                    "btn-primary flex items-center gap-2 px-10",
-                    isSubmitting && "opacity-70 cursor-not-allowed"
-                  )}
-                >
-                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                  {isSubmitting ? "Đang xử lý..." : "Đặt hàng"}
-                </button>
-              </div>
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+                      Phương thức thanh toán
+                    </p>
+                    {PAYMENT_METHODS.map((method) => (
+                      <label
+                        key={method.id}
+                        className={cn(
+                          "flex items-center gap-4 p-4 border cursor-pointer transition-colors",
+                          paymentMethod === method.id
+                            ? "border-dwarfs-dark bg-dwarfs-surface"
+                            : "border-border hover:border-dwarfs-gray"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method.id}
+                          checked={paymentMethod === method.id}
+                          onChange={() => setPaymentMethod(method.id)}
+                          className="accent-dwarfs-dark"
+                        />
+                        <div className="w-8 h-8 flex items-center justify-center bg-dwarfs-surface rounded flex-none">
+                          {method.icon}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{method.label}</p>
+                          <p className="text-xs text-muted-foreground">{method.description}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
 
-              <p className="text-xs text-muted-foreground">
-                Bằng cách đặt hàng, bạn đồng ý với{" "}
-                <Link href="/dieu-khoan-su-dung" className="underline-anim">
-                  điều khoản sử dụng
-                </Link>{" "}
-                và{" "}
-                <Link href="/chinh-sach-bao-mat" className="underline-anim">
-                  chính sách bảo mật
-                </Link>{" "}
-                của Nomad.
-              </p>
+                  <div className="flex gap-3">
+                    <button onClick={goBack} className="btn-outline px-6">
+                      ← Quay lại
+                    </button>
+                    <button
+                      onClick={handlePlaceOrder}
+                      disabled={isSubmitting}
+                      className={cn(
+                        "btn-primary flex items-center gap-2 px-10",
+                        isSubmitting && "opacity-70 cursor-not-allowed"
+                      )}
+                    >
+                      {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                      {isSubmitting ? "Đang xử lý..." : "Đặt hàng"}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Bằng cách đặt hàng, bạn đồng ý với{" "}
+                    <Link href="/dieu-khoan-su-dung" className="underline-anim">
+                      điều khoản sử dụng
+                    </Link>{" "}
+                    và{" "}
+                    <Link href="/chinh-sach-bao-mat" className="underline-anim">
+                      chính sách bảo mật
+                    </Link>{" "}
+                    của Nomad.
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>

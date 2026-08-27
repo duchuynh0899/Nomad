@@ -25,11 +25,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category: slug } = await params;
   const category = await safeGetCategory(slug);
   if (!category) return {};
+
+  const featured = await listProducts({ category: category._id, limit: 1 }).catch(() => null);
+  const image = featured?.items[0]?.images[0]?.url;
+
   return {
     title: category.name,
     description: category.description,
     alternates: { canonical: `/shop/${category.slug}` },
-    openGraph: { title: category.name, description: category.description },
+    openGraph: {
+      title: category.name,
+      description: category.description,
+      images: image ? [{ url: image, alt: category.name }] : undefined,
+    },
+    twitter: image ? { card: "summary_large_image", images: [image] } : undefined,
   };
 }
 

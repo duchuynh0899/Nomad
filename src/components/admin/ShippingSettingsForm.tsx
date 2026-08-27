@@ -14,7 +14,7 @@ export function ShippingSettingsForm({ initialData }: { initialData: ShippingSet
 
   const [defaultFee, setDefaultFee] = useState(initialData.defaultFee.toString());
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(
-    initialData.freeShippingThreshold.toString()
+    initialData.freeShippingThreshold?.toString() ?? ""
   );
   const [provinceFees, setProvinceFees] = useState<ProvinceFee[]>(initialData.provinceFees);
   const [saving, setSaving] = useState(false);
