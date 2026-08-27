@@ -15,7 +15,7 @@ import { createAddress, listMyAddresses } from "@/lib/api/addresses";
 import { validateCoupon } from "@/lib/api/coupons";
 import { ApiError } from "@/lib/api/http";
 import { PayosEmbeddedCheckout } from "./PayosEmbeddedCheckout";
-import type { Address, PaymentMethod, ShippingAddress } from "@/types";
+import type { Address, CartItem, PaymentMethod, ShippingAddress } from "@/types";
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; description: string; icon: React.ReactNode }[] = [
   {
@@ -54,6 +54,10 @@ export function CheckoutClient() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [payosCheckoutUrl, setPayosCheckoutUrl] = useState<string | null>(null);
+  // Chụp lại danh sách item lúc đặt hàng — vì clearCart() chạy ngay sau khi tạo order thành công
+  // (để dọn giỏ), nếu không lưu riêng thì sidebar "Đơn hàng" sẽ hiện 0 sản phẩm trong lúc chờ
+  // khách quét QR thanh toán PayOS.
+  const [placedItemsSnapshot, setPlacedItemsSnapshot] = useState<CartItem[] | null>(null);
 
   const [form, setForm] = useState<ShippingAddress & { note: string }>({
     recipientName: "",
@@ -107,12 +111,20 @@ export function CheckoutClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
-  const subtotal = total();
+  // Đang chờ thanh toán PayOS thì hiển thị lại đúng danh sách item đã đặt (giỏ hàng thật đã bị
+  // clearCart() dọn rỗng ngay sau khi tạo order) thay vì đọc `items` hiện tại của store.
+  const displayItems = payosCheckoutUrl && placedItemsSnapshot ? placedItemsSnapshot : items;
+  // total() đọc từ store (đã bị clearCart() dọn rỗng lúc chờ PayOS) nên tự tính lại từ
+  // displayItems — cùng công thức với CartStore.total() — thay vì gọi thẳng total().
+  const subtotal =
+    payosCheckoutUrl && placedItemsSnapshot
+      ? placedItemsSnapshot.reduce((sum, item) => sum + item.product.effectivePrice * item.quantity, 0)
+      : total();
   const discount = appliedCoupon?.discount ?? 0;
 
   // Redirect if cart is empty — trừ khi đang có 1 đơn PayOS chờ thanh toán (đã clearCart() sau khi
   // tạo order thành công, xem handlePlaceOrder), vì lúc đó vẫn cần hiển thị khung nhúng PayOS.
-  if (items.length === 0 && !payosCheckoutUrl) {
+  if (displayItems.length === 0 && !payosCheckoutUrl) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ShoppingBag size={48} className="text-muted-foreground/30 mb-4" />
@@ -196,6 +208,7 @@ export function CheckoutClient() {
       if (order.paymentMethod === "payos" && order.payment?.checkoutUrl) {
         // Nhúng cổng thanh toán ngay tại trang thay vì chuyển hẳn sang PayOS — webhook vẫn là nơi
         // xác nhận đã thanh toán thật sự, onSuccess ở đây chỉ để điều hướng UX.
+        setPlacedItemsSnapshot(items);
         setPlacedOrderId(order._id);
         setPayosCheckoutUrl(order.payment.checkoutUrl);
         setIsSubmitting(false);
@@ -410,14 +423,12 @@ export function CheckoutClient() {
                   <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
                     Quét mã hoặc thanh toán qua ngân hàng/ví điện tử
                   </p>
-                  <div className="border border-border p-2">
-                    <PayosEmbeddedCheckout
-                      checkoutUrl={payosCheckoutUrl}
-                      returnUrl={`${window.location.origin}/orders/${placedOrderId}/payment-result?status=success`}
-                      onSuccess={() => router.push(`/orders/${placedOrderId}/payment-result?status=success`)}
-                      onCancel={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
-                    />
-                  </div>
+                  <PayosEmbeddedCheckout
+                    checkoutUrl={payosCheckoutUrl}
+                    returnUrl={`${window.location.origin}/orders/${placedOrderId}/payment-result?status=success`}
+                    onSuccess={() => router.push(`/orders/${placedOrderId}/payment-result?status=success`)}
+                    onCancel={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
+                  />
                   <button
                     onClick={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
                     className="text-xs underline-anim text-muted-foreground"
@@ -506,12 +517,12 @@ export function CheckoutClient() {
         <div>
           <div className="border border-border p-6 space-y-5 sticky top-20">
             <h2 className="text-sm font-medium tracking-widest uppercase">
-              Đơn hàng ({items.length} sản phẩm)
+              Đơn hàng ({displayItems.length} sản phẩm)
             </h2>
 
             {/* Items */}
             <ul className="space-y-4 max-h-60 overflow-y-auto scrollbar-hide">
-              {items.map((item) => (
+              {displayItems.map((item) => (
                 <li key={item.id} className="flex gap-3">
                   <div className="relative flex-none">
                     <div className="w-14 h-[74px] bg-dwarfs-surface overflow-hidden">
