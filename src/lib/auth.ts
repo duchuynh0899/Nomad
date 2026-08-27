@@ -1,4 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { cookies } from "next/headers";
 import { API_BASE_URL } from "@/lib/api/http";
@@ -25,6 +26,47 @@ async function relayRefreshCookie(setCookieHeader: string | null) {
     });
   } catch {
     // cookies() chỉ ghi được trong request scope của route handler — bỏ qua nếu gọi ngoài scope đó
+  }
+}
+
+// Đọc claim `exp` (giây, Unix time) từ payload JWT của backend mà không cần verify chữ ký —
+// chỉ dùng để biết khi nào accessToken hết hạn, không dùng để xác thực.
+function decodeAccessTokenExpiry(accessToken: string): number | undefined {
+  try {
+    const payload = accessToken.split(".")[1];
+    const { exp } = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: number };
+    return exp ? exp * 1000 : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Gọi lại backend bằng refresh_token đã relay (xem relayRefreshCookie) để lấy accessToken mới —
+// dùng trong callback `jwt` để các Server Component (getServerSession) không bao giờ cầm accessToken
+// đã hết hạn, khác với useAuthFetch (chỉ refresh khi gặp 401 ở phía client).
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  try {
+    const cookieStore = await cookies();
+    const relayedToken = cookieStore.get(RELAYED_REFRESH_COOKIE)?.value;
+    if (!relayedToken) throw new Error("Không có refresh token để làm mới");
+
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { Cookie: `refresh_token=${relayedToken}` },
+    });
+    if (!res.ok) throw new Error("Làm mới accessToken thất bại");
+
+    await relayRefreshCookie(res.headers.get("set-cookie"));
+    const data = (await res.json()) as AuthResponse;
+
+    return {
+      ...token,
+      accessToken: data.accessToken,
+      accessTokenExpires: decodeAccessTokenExpiry(data.accessToken),
+      error: undefined,
+    };
+  } catch {
+    return { ...token, error: "RefreshAccessTokenError" };
   }
 }
 
@@ -105,19 +147,33 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role;
         token.accessToken = user.accessToken;
+        token.accessTokenExpires = user.accessToken
+          ? decodeAccessTokenExpiry(user.accessToken)
+          : undefined;
+        return token;
       }
       // Cho phép client cập nhật accessToken mới sau khi gọi /api/auth/refresh-token thành công:
       // useSession().update({ accessToken: "..." })
       if (trigger === "update" && session?.accessToken) {
         token.accessToken = session.accessToken;
+        token.accessTokenExpires = decodeAccessTokenExpiry(session.accessToken);
+        token.error = undefined;
+        return token;
       }
-      return token;
+      // Còn hạn (trừ hao 30s) — dùng lại luôn, không refresh mỗi request.
+      if (token.accessTokenExpires && Date.now() < token.accessTokenExpires - 30_000) {
+        return token;
+      }
+      // Hết hạn (hoặc không rõ hạn) và không phải lần đăng nhập/cập nhật vừa rồi — refresh trước khi
+      // trả về, để getServerSession() ở Server Component luôn có accessToken còn dùng được.
+      return refreshAccessToken(token);
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.role = token.role;
         session.accessToken = token.accessToken;
       }
+      session.error = token.error;
       return session;
     },
   },

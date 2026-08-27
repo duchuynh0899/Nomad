@@ -10,6 +10,7 @@ declare module "next-auth" {
       role?: Role;
     } & DefaultSession["user"];
     accessToken?: string;
+    error?: string;
   }
 
   interface User extends DefaultUser {
@@ -22,5 +23,7 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     role?: Role;
     accessToken?: string;
+    accessTokenExpires?: number;
+    error?: string;
   }
 }
