@@ -58,14 +58,14 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
         )}
       >
         <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-14 items-center justify-between">
+          <div className="flex h-16 items-center justify-between">
             {/* Mobile: Menu button */}
             <button
               className="lg:hidden p-2 -ml-2"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Mở menu"
             >
-              <Menu size={20} />
+              <Menu size={22} />
             </button>
 
             {/* Desktop: Nav */}
@@ -74,7 +74,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-sm underline-anim text-foreground/80 hover:text-foreground transition-colors"
+                  className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
                 >
                   {item.label}
                 </Link>
@@ -84,7 +84,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
             {/* Logo – centered */}
             <Link
               href="/"
-              className="absolute left-1/2 -translate-x-1/2 text-xl font-medium tracking-[0.2em] uppercase"
+              className="absolute left-1/2 -translate-x-1/2 text-2xl font-medium tracking-[0.2em] uppercase"
             >
               Nomad
             </Link>
@@ -96,7 +96,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 onClick={() => setSearchOpen(true)}
                 aria-label="Tìm kiếm"
               >
-                <Search size={18} />
+                <Search size={20} />
               </button>
 
               <Link
@@ -104,7 +104,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 className="relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
                 aria-label="Danh sách yêu thích"
               >
-                <Heart size={18} />
+                <Heart size={20} />
                 {wishlistCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-dwarfs-dark text-[10px] font-medium text-white">
                     {wishlistCount}
@@ -120,7 +120,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                     aria-label="Tài khoản"
                     aria-expanded={accountMenuOpen}
                   >
-                    <User size={18} />
+                    <User size={20} />
                     <ChevronDown size={12} className={cn("transition-transform", accountMenuOpen && "rotate-180")} />
                   </button>
 
@@ -165,7 +165,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                   className="flex items-center gap-1.5 pl-2 pr-3 py-2 sm:border sm:border-border sm:rounded-full hover:bg-dwarfs-surface transition-colors"
                   aria-label="Đăng nhập / Đăng ký"
                 >
-                  <User size={18} />
+                  <User size={20} />
                   <span className="hidden sm:inline text-sm font-medium whitespace-nowrap">Đăng nhập</span>
                 </Link>
               )}
@@ -175,7 +175,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 onClick={toggleCart}
                 aria-label="Giỏ hàng"
               >
-                <ShoppingBag size={18} />
+                <ShoppingBag size={20} />
                 {itemCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-dwarfs-dark text-[10px] font-medium text-white">
                     {itemCount > 9 ? "9+" : itemCount}
