@@ -288,6 +288,27 @@ export interface CouponValidateResult {
   discount: number;
 }
 
+// ─── Banner ───────────────────────────────────────────────────────────────────
+
+export interface Banner {
+  _id: string;
+  url: string;
+  publicId: string;
+  href: string;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BannerInput {
+  url: string;
+  publicId: string;
+  href?: string;
+  order?: number;
+  isActive?: boolean;
+}
+
 // ─── Shipping settings ──────────────────────────────────────────────────────
 
 export interface ProvinceFee {

@@ -4,15 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactCrop, { centerCrop, makeAspectCrop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
-// Tỉ lệ ảnh sản phẩm chuẩn của toàn site — khớp với aspect-[3/4] ở ProductCard/ProductDetail,
-// để admin tự chọn phần ảnh muốn giữ thay vì bị object-cover cắt mất góc ngoài ý muốn.
-const ASPECT_RATIO = 3 / 4;
-
 // Trả thẳng đơn vị "px" (không phải "%") để dùng được luôn làm completedCrop mặc định —
 // nhờ vậy bấm "Dùng ảnh này" ngay không cần kéo tay cũng cắt đúng khung giữa ảnh.
-function centeredAspectCrop(width: number, height: number): PixelCrop {
+function centeredAspectCrop(width: number, height: number, aspectRatio: number): PixelCrop {
   const percentCrop = centerCrop(
-    makeAspectCrop({ unit: "%", width: 90 }, ASPECT_RATIO, width, height),
+    makeAspectCrop({ unit: "%", width: 90 }, aspectRatio, width, height),
     width,
     height
   );
@@ -62,9 +58,19 @@ interface ImageCropModalProps {
   file: File | null;
   onCancel: () => void;
   onCropped: (file: File) => void;
+  /** Tỉ lệ khung crop, mặc định 3:4 (ảnh sản phẩm). Vd 21/9 cho banner ngang. */
+  aspectRatio?: number;
+  /** Nhãn tỉ lệ hiển thị trong tiêu đề modal, vd "3:4" hoặc "21:9". */
+  aspectLabel?: string;
 }
 
-export function ImageCropModal({ file, onCancel, onCropped }: ImageCropModalProps) {
+export function ImageCropModal({
+  file,
+  onCancel,
+  onCropped,
+  aspectRatio = 3 / 4,
+  aspectLabel = "3:4",
+}: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const objectUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const [crop, setCrop] = useState<PixelCrop>();
@@ -94,7 +100,7 @@ export function ImageCropModal({ file, onCancel, onCropped }: ImageCropModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="bg-white max-w-lg w-full p-5 space-y-4">
         <div>
-          <h2 className="text-sm font-medium tracking-widest uppercase">Cắt ảnh sản phẩm (3:4)</h2>
+          <h2 className="text-sm font-medium tracking-widest uppercase">Cắt ảnh ({aspectLabel})</h2>
           <p className="text-xs text-muted-foreground mt-1">
             Kéo/chỉnh khung để giữ đúng phần ảnh muốn hiển thị — tránh bị cắt mất góc khi lên trang.
           </p>
@@ -105,7 +111,7 @@ export function ImageCropModal({ file, onCancel, onCropped }: ImageCropModalProp
             crop={crop}
             onChange={(pixelCrop) => setCrop(pixelCrop)}
             onComplete={(c) => setCompletedCrop(c)}
-            aspect={ASPECT_RATIO}
+            aspect={aspectRatio}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -114,7 +120,11 @@ export function ImageCropModal({ file, onCancel, onCropped }: ImageCropModalProp
               alt="Ảnh cần cắt"
               className="max-w-full block"
               onLoad={(e) => {
-                const initial = centeredAspectCrop(e.currentTarget.width, e.currentTarget.height);
+                const initial = centeredAspectCrop(
+                  e.currentTarget.width,
+                  e.currentTarget.height,
+                  aspectRatio
+                );
                 setCrop(initial);
                 setCompletedCrop(initial);
               }}
