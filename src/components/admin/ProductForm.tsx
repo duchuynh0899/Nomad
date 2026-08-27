@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { ImageCropModal } from "./ImageCropModal";
 import { RichTextEditor } from "./RichTextEditor";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthFetch } from "@/lib/api/auth-fetch";
@@ -53,6 +54,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
   const [variants, setVariants] = useState<ProductVariant[]>(initialData?.variants ?? []);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     authFetch((token) => adminListCategories(token))
@@ -69,13 +71,18 @@ export function ProductForm({ initialData }: ProductFormProps) {
 
   // ─── Ảnh ────────────────────────────────────────────────────────────────────
 
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    setCropFile(file);
+  };
+
+  const handleUploadCroppedImage = async (croppedFile: File) => {
+    setCropFile(null);
     setUploading(true);
     try {
-      const result = await authFetch((token) => adminUploadImage(token, file));
+      const result = await authFetch((token) => adminUploadImage(token, croppedFile));
       setImages((prev) => [...prev, { url: result.url, publicId: result.publicId, alt: name }]);
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Tải ảnh lên thất bại", "error");
@@ -353,7 +360,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           >
             {uploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
             {uploading ? "Đang tải..." : "Thêm ảnh"}
-            <input type="file" accept="image/*" className="hidden" onChange={handleUploadImage} />
+            <input type="file" accept="image/*" className="hidden" onChange={handleSelectImage} />
           </label>
         </div>
       </div>
@@ -467,6 +474,8 @@ export function ProductForm({ initialData }: ProductFormProps) {
       <button type="submit" disabled={saving} className="btn-primary">
         {saving ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo sản phẩm"}
       </button>
+
+      <ImageCropModal file={cropFile} onCancel={() => setCropFile(null)} onCropped={handleUploadCroppedImage} />
     </form>
   );
 }
