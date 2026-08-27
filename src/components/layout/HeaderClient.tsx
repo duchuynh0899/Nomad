@@ -100,9 +100,11 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 <Search size={20} />
               </button>
 
+              {/* Yêu thích/Tài khoản đã có sẵn trong menu hamburger (MobileMenu) — ẩn khỏi thanh
+                  header trên điện thoại nhỏ để cụm icon không quá rộng, tránh đè lên logo giữa. */}
               <Link
                 href="/wishlist"
-                className="relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
+                className="hidden sm:inline-flex relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
                 aria-label="Danh sách yêu thích"
               >
                 <Heart size={20} />
@@ -113,6 +115,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 )}
               </Link>
 
+              <div className="hidden sm:block">
               {isAuthed ? (
                 <div className="relative" ref={accountMenuRef}>
                   <button
@@ -170,6 +173,7 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                   <span className="hidden sm:inline text-sm font-medium whitespace-nowrap">Đăng nhập</span>
                 </Link>
               )}
+              </div>
 
               <button
                 className="relative p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
