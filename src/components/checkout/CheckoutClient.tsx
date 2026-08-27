@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, ShoppingBag, Tag, Truck, Loader2, Banknote, QrCode } from "lucide-react";
+import { ChevronRight, ShoppingBag, Tag, Truck, Loader2, Banknote, QrCode, Check } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
+import { VietnamAddressSelects } from "@/components/shared/VietnamAddressSelects";
 import { useCartStore } from "@/lib/cart-store";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthFetch } from "@/lib/api/auth-fetch";
 import { createOrder } from "@/lib/api/orders";
+import { createAddress, listMyAddresses } from "@/lib/api/addresses";
 import { validateCoupon } from "@/lib/api/coupons";
 import { ApiError } from "@/lib/api/http";
-import type { PaymentMethod, ShippingAddress } from "@/types";
+import type { Address, PaymentMethod, ShippingAddress } from "@/types";
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; description: string; icon: React.ReactNode }[] = [
   {
@@ -40,7 +42,7 @@ export function CheckoutClient() {
   const router = useRouter();
   const { items, total, clearCart } = useCartStore();
   const { toast } = useToast();
-  const { authFetch } = useAuthFetch();
+  const { authFetch, accessToken } = useAuthFetch();
 
   const [step, setStep] = useState<Step>("info");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,6 +62,48 @@ export function CheckoutClient() {
     note: "",
   });
 
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+
+  const applySavedAddress = (address: Address) => {
+    setSelectedAddressId(address._id);
+    setForm((prev) => ({
+      ...prev,
+      recipientName: address.recipientName,
+      phone: address.phone,
+      province: address.province,
+      district: address.district,
+      ward: address.ward,
+      addressLine: address.addressLine,
+    }));
+  };
+
+  const useNewAddress = () => {
+    setSelectedAddressId(null);
+    setForm((prev) => ({
+      ...prev,
+      recipientName: "",
+      phone: "",
+      province: "",
+      district: "",
+      ward: "",
+      addressLine: "",
+    }));
+  };
+
+  useEffect(() => {
+    if (!accessToken) return;
+    authFetch((token) => listMyAddresses(token))
+      .then((list) => {
+        setSavedAddresses(list);
+        const preferred = list.find((a) => a.isDefault) ?? list[0];
+        if (preferred) applySavedAddress(preferred);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
+
   const subtotal = total();
   const discount = appliedCoupon?.discount ?? 0;
 
@@ -78,6 +122,7 @@ export function CheckoutClient() {
   }
 
   const updateForm = (field: keyof typeof form, value: string) => {
+    if (field !== "note") setSelectedAddressId(null);
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -126,6 +171,12 @@ export function CheckoutClient() {
         })
       );
       clearCart();
+
+      if (saveAddress && selectedAddressId === null) {
+        authFetch((token) => createAddress(token, { recipientName, phone, province, district, ward, addressLine })).catch(
+          () => {}
+        );
+      }
 
       if (order.paymentMethod === "payos" && order.payment?.checkoutUrl) {
         // Chuyển hẳn sang trang PayOS để thanh toán — PayOS sẽ redirect về /orders/:id/payment-result sau khi xong.
@@ -208,6 +259,47 @@ export function CheckoutClient() {
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-lg font-medium">Thông tin giao hàng</h2>
 
+              {savedAddresses.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    Sổ địa chỉ
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {savedAddresses.map((address) => (
+                      <button
+                        key={address._id}
+                        type="button"
+                        onClick={() => applySavedAddress(address)}
+                        className={cn(
+                          "flex items-center gap-2 border px-3 py-2 text-xs text-left transition-colors max-w-xs",
+                          selectedAddressId === address._id
+                            ? "border-dwarfs-dark bg-dwarfs-surface"
+                            : "border-border hover:border-dwarfs-gray"
+                        )}
+                      >
+                        {selectedAddressId === address._id && <Check size={12} className="flex-none" />}
+                        <span className="truncate">
+                          <span className="font-medium">{address.recipientName}</span> ·{" "}
+                          {address.addressLine}, {address.ward}
+                        </span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={useNewAddress}
+                      className={cn(
+                        "border px-3 py-2 text-xs transition-colors",
+                        selectedAddressId === null
+                          ? "border-dwarfs-dark bg-dwarfs-surface"
+                          : "border-border hover:border-dwarfs-gray"
+                      )}
+                    >
+                      + Địa chỉ khác
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField label="Họ và tên *">
                   <input
@@ -229,35 +321,16 @@ export function CheckoutClient() {
                   />
                 </FormField>
 
-                <FormField label="Tỉnh / Thành phố *" className="sm:col-span-2">
-                  <input
-                    type="text"
-                    value={form.province}
-                    onChange={(e) => updateForm("province", e.target.value)}
-                    placeholder="Ho Chi Minh City"
-                    className="input-base"
-                  />
-                </FormField>
-
-                <FormField label="Quận / Huyện *">
-                  <input
-                    type="text"
-                    value={form.district}
-                    onChange={(e) => updateForm("district", e.target.value)}
-                    placeholder="Quận / Huyện"
-                    className="input-base"
-                  />
-                </FormField>
-
-                <FormField label="Phường / Xã *">
-                  <input
-                    type="text"
-                    value={form.ward}
-                    onChange={(e) => updateForm("ward", e.target.value)}
-                    placeholder="Phường / Xã"
-                    className="input-base"
-                  />
-                </FormField>
+                <VietnamAddressSelects
+                  province={form.province}
+                  district={form.district}
+                  ward={form.ward}
+                  onChange={(next) => {
+                    setSelectedAddressId(null);
+                    setForm((prev) => ({ ...prev, ...next }));
+                  }}
+                  provinceWrapperClassName="sm:col-span-2"
+                />
 
                 <FormField label="Địa chỉ cụ thể *" className="sm:col-span-2">
                   <input
@@ -279,6 +352,17 @@ export function CheckoutClient() {
                   />
                 </FormField>
               </div>
+
+              {accessToken && selectedAddressId === null && (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                  />
+                  Lưu địa chỉ này vào sổ địa chỉ cho lần sau
+                </label>
+              )}
 
               <button onClick={goNext} className="btn-primary w-full sm:w-auto px-10">
                 Tiếp tục → Xác nhận

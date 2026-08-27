@@ -288,6 +288,29 @@ export interface CouponValidateResult {
   discount: number;
 }
 
+// ─── Address (sổ địa chỉ) ───────────────────────────────────────────────────
+
+export interface Address {
+  _id: string;
+  recipientName: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  addressLine: string;
+  isDefault: boolean;
+}
+
+export interface AddressInput {
+  recipientName: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  addressLine: string;
+  isDefault?: boolean;
+}
+
 // ─── Banner ───────────────────────────────────────────────────────────────────
 
 export interface Banner {
