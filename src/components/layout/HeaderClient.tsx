@@ -58,39 +58,40 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
         )}
       >
         <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+          {/* grid 2 cột 2 bên bằng nhau (1fr) để logo ở giữa luôn canh đúng tâm và không bao giờ
+              bị cụm icon/nav đè lên, dù nội dung 2 bên dài/rộng khác nhau (thay cho absolute cũ). */}
+          <div className="grid grid-cols-[1fr_auto_1fr] h-16 items-center">
             {/* Mobile: Menu button */}
-            <button
-              className="lg:hidden p-2 -ml-2"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Mở menu"
-            >
-              <Menu size={22} />
-            </button>
+            <div className="flex items-center justify-self-start">
+              <button
+                className="lg:hidden p-2 -ml-2"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Mở menu"
+              >
+                <Menu size={22} />
+              </button>
 
-            {/* Desktop: Nav */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+              {/* Desktop: Nav */}
+              <nav className="hidden lg:flex items-center gap-8">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
 
             {/* Logo – centered */}
-            <Link
-              href="/"
-              className="absolute left-1/2 -translate-x-1/2 text-2xl font-medium tracking-[0.2em] uppercase"
-            >
+            <Link href="/" className="text-2xl font-medium tracking-[0.2em] uppercase whitespace-nowrap">
               Nomad
             </Link>
 
             {/* Right icons */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 justify-self-end">
               <button
                 className="p-2 hover:bg-dwarfs-surface rounded-full transition-colors"
                 onClick={() => setSearchOpen(true)}
