@@ -110,8 +110,9 @@ export function CheckoutClient() {
   const subtotal = total();
   const discount = appliedCoupon?.discount ?? 0;
 
-  // Redirect if cart is empty
-  if (items.length === 0) {
+  // Redirect if cart is empty — trừ khi đang có 1 đơn PayOS chờ thanh toán (đã clearCart() sau khi
+  // tạo order thành công, xem handlePlaceOrder), vì lúc đó vẫn cần hiển thị khung nhúng PayOS.
+  if (items.length === 0 && !payosCheckoutUrl) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ShoppingBag size={48} className="text-muted-foreground/30 mb-4" />
