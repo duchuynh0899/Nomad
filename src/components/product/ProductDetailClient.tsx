@@ -79,9 +79,28 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
       {/* Main layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
         {/* Images */}
-        <div className="space-y-3">
+        <div className="lg:flex lg:items-start lg:gap-3">
+          {/* Thumbnails — hàng ngang dưới ảnh trên mobile, cột dọc bên trái ảnh trên desktop
+              (để chọn ảnh không cần cuộn xuống khi ảnh chính cao). */}
+          {product.images.length > 1 && (
+            <div className="order-2 mt-3 flex gap-2 overflow-x-auto lg:order-1 lg:mt-0 lg:max-h-[640px] lg:w-20 lg:flex-none lg:flex-col lg:overflow-x-visible lg:overflow-y-auto">
+              {product.images.map((img, idx) => (
+                <button
+                  key={img.publicId || idx}
+                  onClick={() => setSelectedImage(idx)}
+                  className={cn(
+                    "relative w-16 aspect-[3/4] flex-none bg-dwarfs-surface overflow-hidden border-2 transition-colors lg:w-full",
+                    selectedImage === idx ? "border-dwarfs-dark" : "border-transparent"
+                  )}
+                >
+                  <Image src={img.url} alt={img.alt ?? product.name} fill sizes="80px" className="object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Main image */}
-          <div className="relative aspect-[3/4] bg-dwarfs-surface overflow-hidden">
+          <div className="relative order-1 aspect-[3/4] flex-1 bg-dwarfs-surface overflow-hidden lg:order-2">
             {product.images[selectedImage] && (
               <Image
                 src={product.images[selectedImage].url}
@@ -97,24 +116,6 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
               <span className="badge-sale">-{priceDisplay.discountPercent}%</span>
             )}
           </div>
-
-          {/* Thumbnails */}
-          {product.images.length > 1 && (
-            <div className="flex gap-2">
-              {product.images.map((img, idx) => (
-                <button
-                  key={img.publicId || idx}
-                  onClick={() => setSelectedImage(idx)}
-                  className={cn(
-                    "relative w-16 aspect-[3/4] bg-dwarfs-surface overflow-hidden border-2 transition-colors",
-                    selectedImage === idx ? "border-dwarfs-dark" : "border-transparent"
-                  )}
-                >
-                  <Image src={img.url} alt={img.alt ?? product.name} fill sizes="64px" className="object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Product info */}
