@@ -14,6 +14,7 @@ import { createOrder } from "@/lib/api/orders";
 import { createAddress, listMyAddresses } from "@/lib/api/addresses";
 import { validateCoupon } from "@/lib/api/coupons";
 import { ApiError } from "@/lib/api/http";
+import { PayosEmbeddedCheckout } from "./PayosEmbeddedCheckout";
 import type { Address, PaymentMethod, ShippingAddress } from "@/types";
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; description: string; icon: React.ReactNode }[] = [
@@ -51,6 +52,8 @@ export function CheckoutClient() {
   const [couponError, setCouponError] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [payosCheckoutUrl, setPayosCheckoutUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState<ShippingAddress & { note: string }>({
     recipientName: "",
@@ -179,8 +182,11 @@ export function CheckoutClient() {
       }
 
       if (order.paymentMethod === "payos" && order.payment?.checkoutUrl) {
-        // Chuyển hẳn sang trang PayOS để thanh toán — PayOS sẽ redirect về /orders/:id/payment-result sau khi xong.
-        window.location.href = order.payment.checkoutUrl;
+        // Nhúng cổng thanh toán ngay tại trang thay vì chuyển hẳn sang PayOS — webhook vẫn là nơi
+        // xác nhận đã thanh toán thật sự, onSuccess ở đây chỉ để điều hướng UX.
+        setPlacedOrderId(order._id);
+        setPayosCheckoutUrl(order.payment.checkoutUrl);
+        setIsSubmitting(false);
         return;
       }
 
@@ -387,75 +393,99 @@ export function CheckoutClient() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 p-4 border border-border">
-                <Truck size={18} className="text-muted-foreground flex-none" />
-                <p className="text-sm text-muted-foreground">
-                  Phí vận chuyển được tính tự động theo khu vực giao hàng và hiển thị ở tổng đơn hàng sau khi
-                  đặt hàng thành công.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
-                  Phương thức thanh toán
-                </p>
-                {PAYMENT_METHODS.map((method) => (
-                  <label
-                    key={method.id}
-                    className={cn(
-                      "flex items-center gap-4 p-4 border cursor-pointer transition-colors",
-                      paymentMethod === method.id
-                        ? "border-dwarfs-dark bg-dwarfs-surface"
-                        : "border-border hover:border-dwarfs-gray"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={method.id}
-                      checked={paymentMethod === method.id}
-                      onChange={() => setPaymentMethod(method.id)}
-                      className="accent-dwarfs-dark"
+              {payosCheckoutUrl && placedOrderId ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+                    Quét mã hoặc thanh toán qua ngân hàng/ví điện tử
+                  </p>
+                  <div className="border border-border p-2">
+                    <PayosEmbeddedCheckout
+                      checkoutUrl={payosCheckoutUrl}
+                      returnUrl={`${window.location.origin}/orders/${placedOrderId}/payment-result?status=success`}
+                      onSuccess={() => router.push(`/orders/${placedOrderId}/payment-result?status=success`)}
+                      onCancel={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
                     />
-                    <div className="w-8 h-8 flex items-center justify-center bg-dwarfs-surface rounded flex-none">
-                      {method.icon}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{method.label}</p>
-                      <p className="text-xs text-muted-foreground">{method.description}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/orders/${placedOrderId}/payment-result?status=cancel`)}
+                    className="text-xs underline-anim text-muted-foreground"
+                  >
+                    Huỷ, thanh toán sau
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 p-4 border border-border">
+                    <Truck size={18} className="text-muted-foreground flex-none" />
+                    <p className="text-sm text-muted-foreground">
+                      Phí vận chuyển được tính tự động theo khu vực giao hàng và hiển thị ở tổng đơn hàng sau
+                      khi đặt hàng thành công.
+                    </p>
+                  </div>
 
-              <div className="flex gap-3">
-                <button onClick={goBack} className="btn-outline px-6">
-                  ← Quay lại
-                </button>
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={isSubmitting}
-                  className={cn(
-                    "btn-primary flex items-center gap-2 px-10",
-                    isSubmitting && "opacity-70 cursor-not-allowed"
-                  )}
-                >
-                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                  {isSubmitting ? "Đang xử lý..." : "Đặt hàng"}
-                </button>
-              </div>
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+                      Phương thức thanh toán
+                    </p>
+                    {PAYMENT_METHODS.map((method) => (
+                      <label
+                        key={method.id}
+                        className={cn(
+                          "flex items-center gap-4 p-4 border cursor-pointer transition-colors",
+                          paymentMethod === method.id
+                            ? "border-dwarfs-dark bg-dwarfs-surface"
+                            : "border-border hover:border-dwarfs-gray"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method.id}
+                          checked={paymentMethod === method.id}
+                          onChange={() => setPaymentMethod(method.id)}
+                          className="accent-dwarfs-dark"
+                        />
+                        <div className="w-8 h-8 flex items-center justify-center bg-dwarfs-surface rounded flex-none">
+                          {method.icon}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{method.label}</p>
+                          <p className="text-xs text-muted-foreground">{method.description}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
 
-              <p className="text-xs text-muted-foreground">
-                Bằng cách đặt hàng, bạn đồng ý với{" "}
-                <Link href="/dieu-khoan-su-dung" className="underline-anim">
-                  điều khoản sử dụng
-                </Link>{" "}
-                và{" "}
-                <Link href="/chinh-sach-bao-mat" className="underline-anim">
-                  chính sách bảo mật
-                </Link>{" "}
-                của Nomad.
-              </p>
+                  <div className="flex gap-3">
+                    <button onClick={goBack} className="btn-outline px-6">
+                      ← Quay lại
+                    </button>
+                    <button
+                      onClick={handlePlaceOrder}
+                      disabled={isSubmitting}
+                      className={cn(
+                        "btn-primary flex items-center gap-2 px-10",
+                        isSubmitting && "opacity-70 cursor-not-allowed"
+                      )}
+                    >
+                      {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                      {isSubmitting ? "Đang xử lý..." : "Đặt hàng"}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Bằng cách đặt hàng, bạn đồng ý với{" "}
+                    <Link href="/dieu-khoan-su-dung" className="underline-anim">
+                      điều khoản sử dụng
+                    </Link>{" "}
+                    và{" "}
+                    <Link href="/chinh-sach-bao-mat" className="underline-anim">
+                      chính sách bảo mật
+                    </Link>{" "}
+                    của Nomad.
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
