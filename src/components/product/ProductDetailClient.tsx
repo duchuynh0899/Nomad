@@ -7,7 +7,7 @@ import { cn, formatPrice, getPriceDisplay } from "@/lib/utils";
 import { useWishlistStore } from "@/lib/wishlist-store";
 import type { Product, ProductColor, ProductListItem } from "@/types";
 import DOMPurify from "isomorphic-dompurify";
-import { Heart, Minus, Plus } from "lucide-react";
+import { Heart, Minus, Plus, RotateCcw, Tag, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -258,6 +258,23 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
               >
                 <Heart size={18} className={wishlisted ? "fill-current" : ""} />
               </button>
+            </div>
+
+            {/* Trust badges */}
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border">
+              {[
+                { icon: RotateCcw, title: "Đổi trả lên đến 14 ngày", subtitle: "Áp dụng mọi đơn hàng" },
+                { icon: Truck, title: "Vận chuyển toàn quốc", subtitle: "Hỏa tốc Hà Nội - 0876799356" },
+                { icon: Tag, title: "Voucher dành riêng", subtitle: "Mua trên Website - Luôn rẻ nhất" },
+              ].map(({ icon: Icon, title, subtitle }) => (
+                <div key={title} className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex items-center justify-center w-11 h-11 rounded-full border border-border">
+                    <Icon size={18} />
+                  </div>
+                  <p className="text-xs font-medium">{title}</p>
+                  <p className="text-xs text-muted-foreground">{subtitle}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
