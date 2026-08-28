@@ -66,7 +66,10 @@ export function PayosEmbeddedCheckout({
         strategy="afterInteractive"
         onLoad={() => setScriptLoaded(true)}
       />
-      <div id={ELEMENT_ID} className="min-h-[350px]" />
+      {/* PayOS render iframe cao ~600-700px (tabs + QR + thông tin chuyển khoản + đếm ngược) —
+          để container thấp hơn khiến iframe tự cuộn bên trong, nhìn như bị "kẹt" giữa 2 lớp
+          scrollbar. Đặt min-height đủ lớn để hiện trọn nội dung, không cuộn lồng nhau. */}
+      <div id={ELEMENT_ID} className="min-h-175 w-full" />
     </>
   );
 }

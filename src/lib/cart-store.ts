@@ -2,6 +2,14 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { CartItem, Product, ProductVariant } from "@/types";
 
+// Backend trả variant với field `_id` khi đọc, không phải `id` (xem normalizeProduct
+// ở lib/api/products.ts). Nếu variant truyền vào addItem chưa qua fetch mới nhất (hoặc
+// item cũ đã lưu trong localStorage từ trước khi có normalizeProduct) thì `id` có thể
+// chưa có — tự vá lại từ `_id` ngay tại đây để giỏ hàng/checkout luôn có variantId hợp lệ.
+function normalizeVariant(variant: ProductVariant): ProductVariant {
+  return { ...variant, id: variant.id ?? variant._id };
+}
+
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
@@ -27,6 +35,7 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
 
       addItem: (product, variant, quantity = 1) => {
+        variant = normalizeVariant(variant);
         const variantId = variant.id ?? variant.sku;
         const existingItemId = `${product._id}-${variantId}`;
         const existing = get().items.find((i) => i.id === existingItemId);
@@ -100,6 +109,18 @@ export const useCartStore = create<CartStore>()(
       storage: createJSONStorage(() => localStorage),
       // Only persist items, not UI state
       partialize: (state) => ({ items: state.items }),
+      // Vá lại item giỏ hàng cũ đã lưu trước khi có normalizeVariant (variant.id bị thiếu,
+      // chỉ có variant._id) — tránh gửi variantId undefined lên BE lúc đặt hàng.
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<CartStore> | undefined;
+        return {
+          ...currentState,
+          items: (persisted?.items ?? []).map((item) => ({
+            ...item,
+            variant: normalizeVariant(item.variant),
+          })),
+        };
+      },
     }
   )
 );
