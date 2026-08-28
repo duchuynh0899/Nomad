@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* tailwind.config.ts (maxWidth 8xl/9xl, spacing 18/88/112/128, aspectRatio, animation...) không
+   tự nạp ở Tailwind v4 trừ khi khai báo @config — thiếu dòng này khiến max-w-8xl (dùng làm khung
+   container ở hầu hết trang) im lặng không sinh CSS gì cả, nội dung tràn full-width không co lại. */
+@config "../../tailwind.config.ts";
+
 /* Design Tokens */
 @theme {
   --color-dwarfs-bg: #F2F2F0;
