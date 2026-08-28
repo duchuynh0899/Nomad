@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Tag, Copy, Check } from "lucide-react";
+import { Tag, Copy, Check, Truck } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { FeaturedCoupon } from "@/types";
 
@@ -42,12 +42,23 @@ function CouponPill({ coupon }: { coupon: FeaturedCoupon }) {
   );
 }
 
-export function CouponBannerClient({ coupons }: { coupons: FeaturedCoupon[] }) {
-  if (coupons.length === 0) return null;
+interface CouponBannerClientProps {
+  coupons: FeaturedCoupon[];
+  freeShippingThreshold?: number;
+}
+
+export function CouponBannerClient({ coupons, freeShippingThreshold }: CouponBannerClientProps) {
+  if (coupons.length === 0 && !freeShippingThreshold) return null;
 
   return (
     <div className="bg-dwarfs-dark text-dwarfs-light text-xs">
       <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-6 overflow-x-auto scrollbar-hide">
+        {freeShippingThreshold !== undefined && (
+          <span className="inline-flex items-center gap-2 whitespace-nowrap font-medium">
+            <Truck size={12} className="flex-none" />
+            Miễn phí vận chuyển cho đơn từ {formatPrice(freeShippingThreshold)}
+          </span>
+        )}
         {coupons.map((c) => (
           <CouponPill key={c.code} coupon={c} />
         ))}

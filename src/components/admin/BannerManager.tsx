@@ -16,9 +16,9 @@ import { adminDeleteImage, adminUploadImage } from "@/lib/api/uploads";
 import { ApiError } from "@/lib/api/http";
 import type { Banner } from "@/types/api";
 
-// Banner trang chủ là ảnh ngang, cắt tỉ lệ 21:9 — khác 3:4 của ảnh sản phẩm — để khớp khung
-// full-bleed h-[60vh] ở HeroBannerCarousel.
-const BANNER_ASPECT_RATIO = 21 / 9;
+// Banner trang chủ là ảnh ngang, cắt tỉ lệ 2:1 — khác 3:4 của ảnh sản phẩm — để khớp khung
+// full-bleed h-[70vh] ở HeroBannerCarousel (2:1 đỡ crop 2 bên hơn 21:9 khi khung cao lên).
+const BANNER_ASPECT_RATIO = 2 / 1;
 
 export function BannerManager({ initialBanners }: { initialBanners: Banner[] }) {
   const { toast } = useToast();
@@ -210,7 +210,7 @@ export function BannerManager({ initialBanners }: { initialBanners: Banner[] }) 
         onCancel={() => setCropFile(null)}
         onCropped={handleCropped}
         aspectRatio={BANNER_ASPECT_RATIO}
-        aspectLabel="21:9"
+        aspectLabel="2:1"
       />
     </div>
   );

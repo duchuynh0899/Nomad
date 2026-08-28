@@ -41,7 +41,7 @@ export function HeroBannerCarousel({ banners }: { banners: Banner[] }) {
           <Link
             key={banner._id}
             href={banner.href || "/shop"}
-            className="relative min-w-0 flex-[0_0_100%] block h-[60vh] min-h-[420px]"
+            className="relative min-w-0 flex-[0_0_100%] block h-[70vh] min-h-[480px] max-h-[720px]"
           >
             <Image
               src={banner.url}
