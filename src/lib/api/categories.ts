@@ -1,5 +1,5 @@
 import { apiFetch } from "./http";
-import type { Category } from "@/types/api";
+import type { Category, CategoryGroup } from "@/types/api";
 
 export function listCategories() {
   return apiFetch<Category[]>("/categories");
@@ -19,6 +19,7 @@ export interface CategoryInput {
   name: string;
   slug: string;
   description?: string;
+  group?: CategoryGroup;
   isActive?: boolean;
 }
 

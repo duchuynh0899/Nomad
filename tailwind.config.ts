@@ -35,8 +35,11 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        // "--font-sans" khớp đúng biến mà next/font gán cho Inter ở layout.tsx (inter.variable) —
+        // trước đây trỏ nhầm "--font-geist-sans" (không tồn tại) nên toàn site âm thầm render
+        // bằng font hệ thống (system-ui) thay vì Inter.
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "monospace"],
         display: ["var(--font-display)", "Georgia", "serif"],
       },
       spacing: {

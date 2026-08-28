@@ -55,19 +55,39 @@ export function MobileMenu({ isOpen, onClose, navItems }: MobileMenuProps) {
           </button>
         </div>
 
-        {/* Nav items */}
+        {/* Nav items — mục có children (nhóm danh mục "Áo"/"Quần") hiện tiêu đề nhóm + danh sách
+            con thụt lề ngay bên dưới, luôn mở sẵn (không cần accordion vì số lượng thường ít). */}
         <nav className="py-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className="flex items-center justify-between px-6 py-3.5 text-sm hover:bg-dwarfs-surface transition-colors"
-            >
-              {item.label}
-              <ChevronRight size={14} className="text-muted-foreground" />
-            </Link>
-          ))}
+          {navItems.map((item) =>
+            item.children && item.children.length > 0 ? (
+              <div key={item.label} className="py-2">
+                <p className="px-6 py-1.5 text-xs font-medium tracking-widest uppercase text-muted-foreground">
+                  {item.label}
+                </p>
+                {item.children.map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    onClick={onClose}
+                    className="flex items-center justify-between pl-9 pr-6 py-2.5 text-sm hover:bg-dwarfs-surface transition-colors"
+                  >
+                    {child.label}
+                    <ChevronRight size={14} className="text-muted-foreground" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className="flex items-center justify-between px-6 py-3.5 text-sm hover:bg-dwarfs-surface transition-colors"
+              >
+                {item.label}
+                <ChevronRight size={14} className="text-muted-foreground" />
+              </Link>
+            )
+          )}
         </nav>
 
         {/* Bottom links */}

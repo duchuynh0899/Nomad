@@ -7,7 +7,7 @@ import { cn, formatPrice, getPriceDisplay } from "@/lib/utils";
 import { useWishlistStore } from "@/lib/wishlist-store";
 import type { Product, ProductColor, ProductListItem } from "@/types";
 import DOMPurify from "isomorphic-dompurify";
-import { Heart, Minus, Plus } from "lucide-react";
+import { Heart, Minus, Plus, RotateCcw, Tag, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -260,18 +260,49 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
               </button>
             </div>
 
-            {/* Product details */}
-            {sanitizedInfo && (
-              <div className="border-t border-border pt-6">
-                <div
-                  className="prose prose-sm max-w-none text-muted-foreground [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:p-2 [&_td]:border [&_td]:border-border [&_td]:p-2"
-                  dangerouslySetInnerHTML={{ __html: sanitizedInfo }}
-                />
-              </div>
-            )}
+            {/* Trust badges */}
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border">
+              {[
+                { icon: RotateCcw, title: "Đổi trả lên đến 14 ngày", subtitle: "Áp dụng mọi đơn hàng" },
+                { icon: Truck, title: "Vận chuyển toàn quốc", subtitle: "Hỏa tốc Hà Nội - 0876799356" },
+                { icon: Tag, title: "Voucher dành riêng", subtitle: "Mua trên Website - Luôn rẻ nhất" },
+              ].map(({ icon: Icon, title, subtitle }) => (
+                <div key={title} className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex items-center justify-center w-11 h-11 rounded-full border border-border">
+                    <Icon size={18} />
+                  </div>
+                  <p className="text-xs font-medium">{title}</p>
+                  <p className="text-xs text-muted-foreground">{subtitle}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Product details — để full-width bên dưới thay vì nhét trong cột phải, đọc dễ hơn nhiều
+          (nhất là bảng size/thông số dùng hết bề ngang thay vì bị bó hẹp theo cột). */}
+      {sanitizedInfo && (
+        <div className="mt-16 border-t border-border pt-10 max-w-4xl mx-auto">
+          <h2 className="text-lg font-medium mb-6 text-center">Thông tin sản phẩm</h2>
+          <div
+            className="text-sm text-muted-foreground leading-relaxed
+              [&_h1]:text-foreground [&_h1]:text-xl [&_h1]:font-medium [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-3 [&_h1]:first:mt-0
+              [&_h2]:text-foreground [&_h2]:text-lg [&_h2]:font-medium [&_h2]:tracking-tight [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:first:mt-0
+              [&_h3]:text-foreground [&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-6 [&_h3]:mb-2
+              [&_p]:mb-4 [&_p]:last:mb-0
+              [&_strong]:text-foreground [&_strong]:font-medium
+              [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1
+              [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:space-y-1
+              [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-2
+              [&_img]:w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-6 [&_img]:object-cover
+              [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:my-6
+              [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-dwarfs-surface [&_th]:text-foreground [&_th]:font-medium [&_th]:text-left
+              [&_td]:border [&_td]:border-border [&_td]:p-2"
+            dangerouslySetInnerHTML={{ __html: sanitizedInfo }}
+          />
+        </div>
+      )}
 
       {/* Related products */}
       {related.length > 0 && (

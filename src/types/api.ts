@@ -24,11 +24,15 @@ export interface ApiErrorBody {
 
 // ─── Category ─────────────────────────────────────────────────────────────────
 
+export type CategoryGroup = "ao" | "quan";
+
 export interface Category {
   _id: string;
   name: string;
   slug: string;
   description?: string;
+  // Nhóm hiển thị ở dropdown menu header (Áo / Quần) — không có nghĩa là hiện rời, không gộp dropdown.
+  group?: CategoryGroup;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;

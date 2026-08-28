@@ -24,6 +24,10 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  // Danh mục được gom nhóm (vd "Áo", "Quần") hiện dạng dropdown trong nav — chỉ 1 dropdown mở
+  // tại một thời điểm, đóng khi bấm ra ngoài toàn bộ khu vực nav.
+  const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   const itemCount = useCartStore((state) => state.itemCount());
   const wishlistCount = useWishlistStore((state) => state.items.length);
@@ -46,6 +50,18 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [accountMenuOpen]);
+
+  // Đóng dropdown nhóm danh mục (Áo/Quần...) khi bấm ra ngoài toàn bộ khu vực nav
+  useEffect(() => {
+    if (!openNavGroup) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpenNavGroup(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openNavGroup]);
 
   return (
     <>
@@ -71,17 +87,49 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 <Menu size={22} />
               </button>
 
-              {/* Desktop: Nav */}
-              <nav className="hidden lg:flex items-center gap-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              {/* Desktop: Nav — mục có children (nhóm danh mục "Áo"/"Quần") hiện dạng dropdown
+                  thay vì liệt kê phẳng hết ra, tránh tràn hàng khi nhiều danh mục. */}
+              <nav className="hidden lg:flex items-center gap-8" ref={navRef}>
+                {navItems.map((item) =>
+                  item.children && item.children.length > 0 ? (
+                    <div key={item.label} className="relative">
+                      <button
+                        onClick={() => setOpenNavGroup((v) => (v === item.label ? null : item.label))}
+                        className="flex items-center gap-1 text-base text-foreground/80 hover:text-foreground transition-colors"
+                        aria-expanded={openNavGroup === item.label}
+                      >
+                        {item.label}
+                        <ChevronDown
+                          size={14}
+                          className={cn("transition-transform", openNavGroup === item.label && "rotate-180")}
+                        />
+                      </button>
+
+                      {openNavGroup === item.label && (
+                        <div className="absolute left-0 top-full mt-2 w-56 border border-border bg-[var(--background)] shadow-lg py-2 z-50">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setOpenNavGroup(null)}
+                              className="block px-4 py-2.5 text-sm hover:bg-dwarfs-surface transition-colors"
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                )}
               </nav>
             </div>
 
