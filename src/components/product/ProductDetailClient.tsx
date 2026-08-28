@@ -284,7 +284,7 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
           (nhất là bảng size/thông số dùng hết bề ngang thay vì bị bó hẹp theo cột). */}
       {sanitizedInfo && (
         <div className="mt-16 border-t border-border pt-10 max-w-4xl mx-auto">
-          <h2 className="text-lg font-medium mb-6">Thông tin sản phẩm</h2>
+          <h2 className="text-lg font-medium mb-6 text-center">Thông tin sản phẩm</h2>
           <div
             className="prose prose-sm max-w-none text-muted-foreground [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:p-2 [&_td]:border [&_td]:border-border [&_td]:p-2"
             dangerouslySetInnerHTML={{ __html: sanitizedInfo }}
