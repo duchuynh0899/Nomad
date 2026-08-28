@@ -19,6 +19,7 @@ export function CategoryForm({ initialData }: { initialData?: Category }) {
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(isEdit);
   const [description, setDescription] = useState(initialData?.description ?? "");
+  const [group, setGroup] = useState<"" | "ao" | "quan">(initialData?.group ?? "");
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +32,13 @@ export function CategoryForm({ initialData }: { initialData?: Category }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { name, slug, description: description || undefined, isActive };
+      const payload = {
+        name,
+        slug,
+        description: description || undefined,
+        group: group || undefined,
+        isActive,
+      };
       if (isEdit && initialData) {
         await authFetch((token) => adminUpdateCategory(token, initialData._id, payload));
         toast("Đã cập nhật danh mục", "success");
@@ -72,6 +79,21 @@ export function CategoryForm({ initialData }: { initialData?: Category }) {
           pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
           className="w-full border border-border px-3 py-2.5 text-sm bg-white font-mono"
         />
+      </div>
+
+      <div>
+        <label className="text-xs font-medium tracking-widest uppercase mb-2 block">
+          Nhóm ở menu header
+        </label>
+        <select
+          value={group}
+          onChange={(e) => setGroup(e.target.value as "" | "ao" | "quan")}
+          className="w-full border border-border px-3 py-2.5 text-sm bg-white"
+        >
+          <option value="">Không phân nhóm (hiện rời trên menu)</option>
+          <option value="ao">Áo</option>
+          <option value="quan">Quần</option>
+        </select>
       </div>
 
       <div>

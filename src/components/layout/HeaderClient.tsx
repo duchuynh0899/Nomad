@@ -15,10 +15,6 @@ interface HeaderClientProps {
   navItems: NavItem[];
 }
 
-// Nhiều danh mục cộng thêm các mục tĩnh (New Arrivals, Sale...) ghép thành 1 hàng dễ tràn ngang
-// trên desktop — chỉ hiện tối đa ngần này mục, phần dư gom vào dropdown "Thêm".
-const MAX_VISIBLE_NAV_ITEMS = 5;
-
 export function HeaderClient({ navItems }: HeaderClientProps) {
   const { data: session, status } = useSession();
   const isAuthed = status === "authenticated";
@@ -28,11 +24,10 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
-  const [navMoreOpen, setNavMoreOpen] = useState(false);
-  const navMoreRef = useRef<HTMLDivElement>(null);
-
-  const visibleNavItems = navItems.slice(0, MAX_VISIBLE_NAV_ITEMS);
-  const overflowNavItems = navItems.slice(MAX_VISIBLE_NAV_ITEMS);
+  // Danh mục được gom nhóm (vd "Áo", "Quần") hiện dạng dropdown trong nav — chỉ 1 dropdown mở
+  // tại một thời điểm, đóng khi bấm ra ngoài toàn bộ khu vực nav.
+  const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   const itemCount = useCartStore((state) => state.itemCount());
   const wishlistCount = useWishlistStore((state) => state.items.length);
@@ -56,17 +51,17 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [accountMenuOpen]);
 
-  // Đóng dropdown "Thêm" (danh mục dư) khi bấm ra ngoài
+  // Đóng dropdown nhóm danh mục (Áo/Quần...) khi bấm ra ngoài toàn bộ khu vực nav
   useEffect(() => {
-    if (!navMoreOpen) return;
+    if (!openNavGroup) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (navMoreRef.current && !navMoreRef.current.contains(e.target as Node)) {
-        setNavMoreOpen(false);
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpenNavGroup(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [navMoreOpen]);
+  }, [openNavGroup]);
 
   return (
     <>
@@ -92,44 +87,48 @@ export function HeaderClient({ navItems }: HeaderClientProps) {
                 <Menu size={22} />
               </button>
 
-              {/* Desktop: Nav */}
-              <nav className="hidden lg:flex items-center gap-8">
-                {visibleNavItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              {/* Desktop: Nav — mục có children (nhóm danh mục "Áo"/"Quần") hiện dạng dropdown
+                  thay vì liệt kê phẳng hết ra, tránh tràn hàng khi nhiều danh mục. */}
+              <nav className="hidden lg:flex items-center gap-8" ref={navRef}>
+                {navItems.map((item) =>
+                  item.children && item.children.length > 0 ? (
+                    <div key={item.label} className="relative">
+                      <button
+                        onClick={() => setOpenNavGroup((v) => (v === item.label ? null : item.label))}
+                        className="flex items-center gap-1 text-base text-foreground/80 hover:text-foreground transition-colors"
+                        aria-expanded={openNavGroup === item.label}
+                      >
+                        {item.label}
+                        <ChevronDown
+                          size={14}
+                          className={cn("transition-transform", openNavGroup === item.label && "rotate-180")}
+                        />
+                      </button>
 
-                {overflowNavItems.length > 0 && (
-                  <div className="relative" ref={navMoreRef}>
-                    <button
-                      onClick={() => setNavMoreOpen((v) => !v)}
-                      className="flex items-center gap-1 text-base text-foreground/80 hover:text-foreground transition-colors"
-                      aria-expanded={navMoreOpen}
+                      {openNavGroup === item.label && (
+                        <div className="absolute left-0 top-full mt-2 w-56 border border-border bg-[var(--background)] shadow-lg py-2 z-50">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setOpenNavGroup(null)}
+                              className="block px-4 py-2.5 text-sm hover:bg-dwarfs-surface transition-colors"
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-base underline-anim text-foreground/80 hover:text-foreground transition-colors"
                     >
-                      Thêm
-                      <ChevronDown size={14} className={cn("transition-transform", navMoreOpen && "rotate-180")} />
-                    </button>
-
-                    {navMoreOpen && (
-                      <div className="absolute left-0 top-full mt-2 w-56 border border-border bg-[var(--background)] shadow-lg py-2 z-50">
-                        {overflowNavItems.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setNavMoreOpen(false)}
-                            className="block px-4 py-2.5 text-sm hover:bg-dwarfs-surface transition-colors"
-                          >
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      {item.label}
+                    </Link>
+                  )
                 )}
               </nav>
             </div>
