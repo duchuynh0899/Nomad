@@ -100,15 +100,17 @@ export function CategorySection({ category, products, viewAllHref, productCount 
         </div>
       </div>
 
-      {/* View all link */}
-      <div className="mt-8 text-center">
-        <Link
-          href={viewAllHref}
-          className="btn-outline inline-block" 
-        >
-          Xem tất cả {category.name.toLowerCase()} ({productCount})
-        </Link>
-      </div>
+      {/* View all link - chỉ hiển thị khi danh mục có nhiều hơn số sản phẩm đang xem trước */}
+      {productCount > products.length && (
+        <div className="mt-8 text-center">
+          <Link
+            href={viewAllHref}
+            className="btn-outline inline-block"
+          >
+            Xem tất cả {category.name.toLowerCase()} ({productCount})
+          </Link>
+        </div>
+      )}
     </section>
   );
 }
