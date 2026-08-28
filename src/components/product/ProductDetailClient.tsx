@@ -286,7 +286,19 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
         <div className="mt-16 border-t border-border pt-10 max-w-4xl mx-auto">
           <h2 className="text-lg font-medium mb-6 text-center">Thông tin sản phẩm</h2>
           <div
-            className="prose prose-sm max-w-none text-muted-foreground [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:p-2 [&_td]:border [&_td]:border-border [&_td]:p-2"
+            className="text-sm text-muted-foreground leading-relaxed
+              [&_h1]:text-foreground [&_h1]:text-xl [&_h1]:font-medium [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-3 [&_h1]:first:mt-0
+              [&_h2]:text-foreground [&_h2]:text-lg [&_h2]:font-medium [&_h2]:tracking-tight [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:first:mt-0
+              [&_h3]:text-foreground [&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-6 [&_h3]:mb-2
+              [&_p]:mb-4 [&_p]:last:mb-0
+              [&_strong]:text-foreground [&_strong]:font-medium
+              [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1
+              [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:space-y-1
+              [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-2
+              [&_img]:w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-6 [&_img]:object-cover
+              [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:my-6
+              [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-dwarfs-surface [&_th]:text-foreground [&_th]:font-medium [&_th]:text-left
+              [&_td]:border [&_td]:border-border [&_td]:p-2"
             dangerouslySetInnerHTML={{ __html: sanitizedInfo }}
           />
         </div>
