@@ -468,7 +468,14 @@ export function ProductForm({ initialData }: ProductFormProps) {
         <p className="text-xs text-muted-foreground mb-3">
           Mô tả, chất liệu, hướng dẫn bảo quản, bảng size — viết tự do
         </p>
-        <RichTextEditor value={information} onChange={setInformation} />
+        <RichTextEditor
+          value={information}
+          onChange={setInformation}
+          onImageUpload={async (file) => {
+            const result = await authFetch((token) => adminUploadImage(token, file));
+            return result.url;
+          }}
+        />
       </div>
 
       <button type="submit" disabled={saving} className="btn-primary">
