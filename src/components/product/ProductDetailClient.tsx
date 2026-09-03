@@ -162,14 +162,19 @@ export function ProductDetailClient({ product, related }: ProductDetailClientPro
                         setSelectedSize(null);
                       }}
                       className={cn(
-                        "w-8 h-8 rounded-full border-2 transition-all",
+                        "w-8 h-8 rounded-full border border-black/10 transition-all",
+                        // Dùng ring có khoảng hở (ring-offset) thay vì đổi màu border — border đổi
+                        // màu đen sẽ gần như vô hình khi bản thân màu sản phẩm cũng tối, ring-offset
+                        // luôn có khoảng trắng ngăn cách nên thấy rõ đang chọn màu nào bất kể màu gì.
+                        "ring-offset-[var(--background)]",
                         selectedColor?.slug === color.slug
-                          ? "border-dwarfs-dark scale-110"
-                          : "border-transparent hover:border-border"
+                          ? "ring-2 ring-dwarfs-dark ring-offset-2"
+                          : "hover:ring-2 hover:ring-border hover:ring-offset-2"
                       )}
                       style={{ backgroundColor: color.hex }}
                       title={color.name}
                       aria-label={color.name}
+                      aria-pressed={selectedColor?.slug === color.slug}
                     />
                   ))}
                 </div>

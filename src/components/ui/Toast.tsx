@@ -49,9 +49,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
 
-      {/* Toast container */}
+      {/* Toast container — đặt góc trên-phải, tránh đè lên nút "Thanh toán" ở cuối CartDrawer
+          (giỏ hàng tự mở khi thêm sản phẩm, drawer đó cũng neo bên phải, phía dưới). */}
       <div
-        className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 max-w-xs w-full"
+        className="fixed top-20 right-6 z-[100] flex flex-col gap-2 max-w-xs w-full"
         aria-live="polite"
       >
         {toasts.map((t) => (
@@ -59,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             className={cn(
               "flex items-center gap-3 bg-[var(--background)] border border-border px-4 py-3 shadow-lg",
-              "animate-slide-up text-sm"
+              "animate-slide-down text-sm"
             )}
           >
             {icons[t.type]}
