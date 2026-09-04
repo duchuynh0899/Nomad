@@ -1,7 +1,7 @@
 // components/admin/RichTextEditor.tsx
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -192,7 +192,9 @@ export function RichTextEditor({ value, onChange, onImageUpload }: RichTextEdito
   // Đọc qua ref để handlePaste (được đăng ký 1 lần lúc tạo editor) luôn thấy giá trị mới nhất
   // của onImageUpload, tránh bị "đóng băng" closure ở lần render đầu.
   const onImageUploadRef = useRef(onImageUpload);
-  onImageUploadRef.current = onImageUpload;
+  useEffect(() => {
+    onImageUploadRef.current = onImageUpload;
+  }, [onImageUpload]);
   const editorRef = useRef<Editor | null>(null);
 
   const uploadImageAt = (file: File, pos: number) => {
@@ -248,7 +250,9 @@ export function RichTextEditor({ value, onChange, onImageUpload }: RichTextEdito
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  editorRef.current = editor;
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   if (!editor) {
     return <div className="border border-border bg-white min-h-[260px]" />;

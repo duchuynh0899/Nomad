@@ -79,6 +79,7 @@ export async function Footer() {
             <h3 className="text-xs font-medium tracking-widest uppercase mb-4">Hỗ trợ</h3>
             <ul className="space-y-3">
               {[
+                { label: "Giới thiệu", href: "/gioi-thieu" },
                 { label: "Hướng dẫn chọn size", href: "/huong-dan-chon-size" },
                 { label: "Chính sách đổi trả", href: "/policy" },
               ].map((item) => (
